@@ -16,11 +16,22 @@ package org.eclipse.lemminx.customservice.synapse.parser;
 public class BuildDetails {
 
     private AdvanceDetails advanceDetails;
+    private Node enableFatCar;
     private DockerDetails dockerDetails;
 
     BuildDetails() {
         advanceDetails = new AdvanceDetails();
         dockerDetails = new DockerDetails();
+    }
+
+    public Node getEnableFatCar() {
+
+        return enableFatCar;
+    }
+
+    public void setEnableFatCar(Node enableFatCar) {
+
+        this.enableFatCar = enableFatCar;
     }
 
     public AdvanceDetails getAdvanceDetails() {

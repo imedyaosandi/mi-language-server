@@ -63,6 +63,7 @@ import org.eclipse.lemminx.customservice.synapse.parser.DeployPluginDetails;
 import org.eclipse.lemminx.customservice.synapse.parser.OverviewPageDetailsResponse;
 import org.eclipse.lemminx.customservice.synapse.parser.UpdateConfigRequest;
 import org.eclipse.lemminx.customservice.synapse.parser.UpdateDependencyRequest;
+import org.eclipse.lemminx.customservice.synapse.parser.UpdatePropertyRequest;
 import org.eclipse.lemminx.customservice.synapse.parser.UpdateResponse;
 import org.eclipse.lemminx.customservice.synapse.parser.config.ConfigurableEntry;
 import org.eclipse.lemminx.customservice.synapse.resourceFinder.ResourceUsagesRequest;
@@ -228,6 +229,9 @@ public interface ISynapseLanguageService {
 
     @JsonRequest
     CompletableFuture<OverviewPageDetailsResponse> getOverviewPageDetails();
+
+    @JsonRequest
+    CompletableFuture<UpdateResponse> updateProperty(UpdatePropertyRequest request);
 
     @JsonRequest
     CompletableFuture<UpdateResponse> updateDependency(UpdateDependencyRequest request);

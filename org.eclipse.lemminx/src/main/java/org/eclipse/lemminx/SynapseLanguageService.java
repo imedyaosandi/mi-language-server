@@ -77,6 +77,7 @@ import org.eclipse.lemminx.customservice.synapse.parser.OverviewPage;
 import org.eclipse.lemminx.customservice.synapse.parser.OverviewPageDetailsResponse;
 import org.eclipse.lemminx.customservice.synapse.parser.UpdateConfigRequest;
 import org.eclipse.lemminx.customservice.synapse.parser.UpdateDependencyRequest;
+import org.eclipse.lemminx.customservice.synapse.parser.UpdatePropertyRequest;
 import org.eclipse.lemminx.customservice.synapse.parser.UpdateResponse;
 import org.eclipse.lemminx.customservice.synapse.parser.config.ConfigParser;
 import org.eclipse.lemminx.customservice.synapse.parser.config.ConfigurableEntry;
@@ -640,6 +641,12 @@ public class SynapseLanguageService implements ISynapseLanguageService {
     public CompletableFuture<SignatureHelp> signatureHelp(ExpressionParam params) {
 
         return CompletableFuture.supplyAsync(() -> ExpressionSignatureProvider.getFunctionSignatures(params));
+    }
+
+    @Override
+    public CompletableFuture<UpdateResponse> updateProperty(UpdatePropertyRequest request) {
+        UpdateResponse response = PomParser.updateProperty(projectUri, request);
+        return CompletableFuture.supplyAsync(() -> response);
     }
 
     @Override

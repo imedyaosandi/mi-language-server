@@ -19,7 +19,9 @@ import org.eclipse.lemminx.customservice.synapse.parser.Constants;
 import org.eclipse.lemminx.customservice.synapse.parser.DeployPluginDetails;
 import org.eclipse.lemminx.customservice.synapse.parser.DependencyDetails;
 import org.eclipse.lemminx.customservice.synapse.parser.OverviewPageDetailsResponse;
+import org.eclipse.lemminx.customservice.synapse.parser.PropertyDetails;
 import org.eclipse.lemminx.customservice.synapse.parser.UpdateDependencyRequest;
+import org.eclipse.lemminx.customservice.synapse.parser.UpdatePropertyRequest;
 import org.eclipse.lemminx.customservice.synapse.parser.UpdateResponse;
 import org.eclipse.lemminx.customservice.synapse.utils.Constant;
 import org.eclipse.lsp4j.Position;
@@ -37,6 +39,7 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 import javax.xml.stream.Location;
+import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamConstants;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
@@ -52,6 +55,8 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.nio.file.Files;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -63,10 +68,54 @@ public class PomParser {
     private static DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
     private static TransformerFactory transformerFactory = TransformerFactory.newInstance();
     private static boolean hasDependencies = false;
+    private static boolean hasProperties = false;
 
     public static void getPomDetails(String projectUri, OverviewPageDetailsResponse detailsResponse) {
         pomDetailsResponse = detailsResponse;
         extractPomContent(projectUri);
+    }
+
+    public static UpdateResponse updateProperty(String projectUri, UpdatePropertyRequest request) {
+        try {
+            DocumentBuilder builder = factory.newDocumentBuilder();
+            Document document = builder.newDocument();
+            UpdateResponse updateResponse = new UpdateResponse();
+            StringBuilder elementInString = new StringBuilder();
+            List<String> pomContent = readPom(projectUri);
+            assert pomContent != null;
+            Element propertiesElement = null;
+            Range initialRange = getPropertiesRange(pomContent);
+            if (!hasProperties) {
+                propertiesElement = document.createElement(Constants.PROPERTIES);
+            }
+            for (PropertyDetails property : request.properties) {
+                if (property.getRange() != null) {
+                    updateResponse.add(new TextEdit(property.getRange(),
+                            elementToString(createPropertyElement(document, property))));
+                } else {
+                    if (propertiesElement != null) {
+                        propertiesElement.appendChild(createPropertyElement(document, property));
+                    } else {
+                        elementInString.append(elementToString(createPropertyElement(document, property)));
+                    }
+                }
+            }
+            String value;
+            if (propertiesElement != null) {
+                value = elementToString(propertiesElement);
+            } else {
+                value = elementInString.toString();
+            }
+            if (value == null) {
+                return null;
+            }
+            // Add the new content inside the <properties> section
+            updateResponse.add(new TextEdit(new Range(initialRange.getStart(), initialRange.getStart()), value));
+            return updateResponse;
+        } catch (ParserConfigurationException e) {
+            LOGGER.log(Level.SEVERE, "Error parsing the POM file : " + e.getMessage());
+            return null;
+        }
     }
 
     public static UpdateResponse updateDependency(String projectUri, UpdateDependencyRequest request) {
@@ -300,6 +349,68 @@ public class PomParser {
         }
     }
 
+    public static Range getPropertiesRange(List<String> pomContent) {
+        if (pomContent == null || pomContent.isEmpty()) {
+            return null;
+        }
+        XMLStreamReader reader = null;
+        try {
+            reader = getXMLReader(pomContent);
+            Deque<String> elementStack = new ArrayDeque<>();
+            int startLine = -1, startChar = -1;
+            int endLine = -1, endChar = -1;
+
+            while (reader.hasNext()) {
+                int event = reader.next();
+
+                if (event == XMLStreamConstants.START_ELEMENT) {
+                    String localName = reader.getLocalName();
+                    elementStack.push(localName);
+
+                    if (Constants.PROPERTIES.equals(localName) && elementStack.size() == 2 &&
+                            Constant.PROJECT.equals(elementStack.peekLast())) {
+                        hasProperties = true;
+                        startLine = reader.getLocation().getLineNumber();
+                        startChar = reader.getLocation().getColumnNumber() + localName.length() + 2; // After <properties>
+                    }
+                }
+
+                if (event == XMLStreamConstants.END_ELEMENT) {
+                    String localName = reader.getLocalName();
+
+                    if (Constants.PROPERTIES.equals(localName) && startLine != -1 && elementStack.size() == 2 &&
+                            Constant.PROJECT.equals(elementStack.peekLast())) {
+                        endLine = reader.getLocation().getLineNumber();
+                        endChar = reader.getLocation().getColumnNumber(); // At </properties>
+                        break;
+                    }
+
+                    elementStack.pop();
+                }
+            }
+
+            if (startLine == -1 || endLine == -1 || startChar == -1 || endChar == -1) {
+                return null;
+            }
+
+            Position start = new Position(startLine, startChar);
+            Position end = new Position(endLine, endChar);
+            return new Range(start, end);
+
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error reading the POM file: " + e.getMessage());
+            return null;
+        } finally {
+            if (reader != null) {
+                try {
+                    reader.close();
+                } catch (XMLStreamException e) {
+                    LOGGER.log(Level.WARNING, "Error closing XMLStreamReader: " + e.getMessage());
+                }
+            }
+        }
+    }
+
     private static Position getDependenciesStartPosition(List<String> pomContent) {
         try {
             XMLStreamReader reader = getXMLReader(pomContent);
@@ -343,6 +454,12 @@ public class PomParser {
             LOGGER.log(Level.SEVERE, "Error reading the POM file: " + e.getMessage());
             return null;
         }
+    }
+
+    private static Element createPropertyElement(Document document, PropertyDetails propertyDetails) {
+        Element property = document.createElement(propertyDetails.getName());
+        property.setTextContent(propertyDetails.getValue());
+        return property;
     }
 
     private static Element createDependencyElement(Document document, DependencyDetails dependencyDetails) {

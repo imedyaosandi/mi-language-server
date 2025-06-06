@@ -262,6 +262,8 @@ public class PluginHandler extends DefaultHandler {
                 pomDetailsResponse.getBuildDetails().getDockerDetails().
                         setKeyStoreAlias(new Node(value, Either.forLeft(range)));
                 break;
+            case Constants.FAT_CAR_ENABLE: pomDetailsResponse.getBuildDetails().setEnableFatCar(
+                        new Node(value, Either.forLeft(range)));
             case Constants.CIPHER_TOOL_ENABLE:
                 pomDetailsResponse.getBuildDetails().getDockerDetails().setCipherToolEnable(
                         new Node(value, Either.forLeft(range)));
