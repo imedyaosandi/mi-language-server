@@ -45,6 +45,7 @@ import org.w3c.dom.Node;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -72,6 +73,8 @@ import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -87,7 +90,13 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
+import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.rendering.ImageType;
+import org.apache.pdfbox.rendering.PDFRenderer;
+import java.awt.image.BufferedImage;
 
+import javax.imageio.ImageIO;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerFactory;
@@ -1454,5 +1463,35 @@ public class Utils {
             return StringUtils.EMPTY;
         }
         return value.replaceAll("<!\\[CDATA\\[", "").replaceAll("]]>", "");
+    }
+
+     /**
+     * Converts a Base64 encoded PDF string into a List of Base64 encoded PNG image strings.
+     *
+     * @param base64Pdf Content of the PDF in Base64.
+     * @return A List of strings, where each string is a Base64 encoded PNG image of a page.
+     */
+    public static List<String> pdfToImage(String base64Pdf) throws IOException, IllegalArgumentException {
+        List<String> encodedImages = new ArrayList<>();
+
+        try {
+            final byte[] pdfData = Base64.getDecoder().decode(base64Pdf);
+            try (PDDocument document = Loader.loadPDF(pdfData)) {
+                PDFRenderer pdfRenderer = new PDFRenderer(document);
+                for (int page = 0; page < document.getNumberOfPages(); ++page) {
+                    BufferedImage bufferedImage = pdfRenderer.renderImageWithDPI(page, 300, ImageType.RGB);
+                    try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+                        ImageIO.write(bufferedImage, "png", baos); 
+                        String base64Image = Base64.getEncoder().encodeToString(baos.toByteArray());
+                        encodedImages.add("data:image/png;base64," + base64Image);
+                    }
+                }
+            } 
+            return encodedImages;
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid Base64 encoded PDF content.", e);
+        } catch (IOException e) {
+            throw new IOException("Error while processing PDF to image conversion.", e);
+        }
     }
 }

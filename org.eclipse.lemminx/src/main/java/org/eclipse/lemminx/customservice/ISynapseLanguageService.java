@@ -50,6 +50,7 @@ import org.eclipse.lemminx.customservice.synapse.dynamic.db.GetDynamicFieldsRequ
 import org.eclipse.lemminx.customservice.synapse.expression.pojo.ExpressionParam;
 import org.eclipse.lemminx.customservice.synapse.expression.pojo.ExpressionValidationResponse;
 import org.eclipse.lemminx.customservice.synapse.expression.pojo.HelperPanelData;
+import org.eclipse.lemminx.customservice.synapse.idp.PdfToImagesRequest;
 import org.eclipse.lemminx.customservice.synapse.inbound.conector.InboundConnectorResponse;
 import org.eclipse.lemminx.customservice.synapse.inbound.conector.InboundConnectorParam;
 import org.eclipse.lemminx.customservice.synapse.mediator.tryout.pojo.MediatorTryoutRequest;
@@ -281,4 +282,7 @@ public interface ISynapseLanguageService {
 
     @JsonRequest
     CompletableFuture<String> getLocalInboundEndpointsListForCopilot();
+
+    @JsonRequest
+    CompletableFuture<List<String>> pdfToImagesBase64(PdfToImagesRequest request);
 }

@@ -121,6 +121,7 @@ import org.eclipse.lemminx.customservice.synapse.syntaxTree.pojo.ArtifactTypeRes
 import org.eclipse.lemminx.customservice.synapse.utils.Constant;
 import org.eclipse.lemminx.customservice.synapse.mediator.tryout.pojo.MediatorTryoutInfo;
 import org.eclipse.lemminx.customservice.synapse.utils.Utils;
+import org.eclipse.lemminx.customservice.synapse.idp.PdfToImagesRequest;
 import org.eclipse.lemminx.dom.DOMDocument;
 import org.eclipse.lemminx.extensions.contentmodel.settings.XMLValidationSettings;
 import org.eclipse.lemminx.services.extensions.completion.ICompletionResponse;
@@ -754,6 +755,20 @@ public class SynapseLanguageService implements ISynapseLanguageService {
     public CompletableFuture<String> getLocalInboundEndpointsListForCopilot() {
 
         return CompletableFuture.supplyAsync(() -> inboundConnectorHolder.getLocalInboundEndpointsListForCopilot());
+    }
+
+    @Override
+    public CompletableFuture<List<String>> pdfToImagesBase64(PdfToImagesRequest param) {
+
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                List<String> images = Utils.pdfToImage(param.getBase64());
+                return images;
+            } catch (Exception e) {
+                log.log(Level.SEVERE, "Error occurred while converting pdf to images", e);
+                return new ArrayList<>();
+            }
+        });
     }
 
     public String getProjectUri() {

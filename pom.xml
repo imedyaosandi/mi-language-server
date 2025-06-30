@@ -23,6 +23,7 @@
 		<velocity.version>2.4</velocity.version>
 		<org.antlr4.version>4.7.1</org.antlr4.version>
 		<antlr4.maven.plugin.version>4.7.1</antlr4.maven.plugin.version>
+		<apache.pdfbox.version>3.0.2</apache.pdfbox.version>
 	</properties>
 	<url>https://github.com/eclipse/lemminx</url>
 	<licenses>
@@ -213,6 +214,11 @@
 				<artifactId>antlr4-runtime</artifactId>
 				<version>${org.antlr4.version}</version>
 			</dependency>
+			<dependency>
+				<groupId>org.apache.pdfbox</groupId>
+				<artifactId>pdfbox</artifactId>
+				<version>${apache.pdfbox.version}</version> 
+        	</dependency>
 		</dependencies>
 	</dependencyManagement>
 	<build>
