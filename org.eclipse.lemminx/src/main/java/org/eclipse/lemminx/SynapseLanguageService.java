@@ -69,6 +69,7 @@ import org.eclipse.lemminx.customservice.synapse.mediatorService.pojo.MediatorRe
 import org.eclipse.lemminx.customservice.synapse.mediatorService.pojo.SynapseConfigRequest;
 import org.eclipse.lemminx.customservice.synapse.mediatorService.pojo.SynapseConfigResponse;
 import org.eclipse.lemminx.customservice.synapse.mediatorService.pojo.UISchemaRequest;
+import org.eclipse.lemminx.customservice.synapse.parser.ConfigDetails;
 import org.eclipse.lemminx.customservice.synapse.parser.Constants;
 import org.eclipse.lemminx.customservice.synapse.parser.DeployPluginDetails;
 import org.eclipse.lemminx.customservice.synapse.parser.DependencyDownloadManager;
@@ -741,6 +742,12 @@ public class SynapseLanguageService implements ISynapseLanguageService {
 
         return CompletableFuture.supplyAsync(() -> PomParser.removeDeployPlugin(
                 new File(projectUri + File.separator + Constants.POM_FILE)));
+    }
+
+    @Override
+    public CompletableFuture<List<ConfigDetails>> getConfigurableList() {
+
+        return CompletableFuture.supplyAsync(() -> ConfigParser.getConfigDetails(projectUri));
     }
 
     public String getProjectUri() {

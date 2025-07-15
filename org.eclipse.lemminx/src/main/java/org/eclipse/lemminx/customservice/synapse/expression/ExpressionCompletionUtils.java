@@ -23,6 +23,7 @@ import org.eclipse.lemminx.customservice.synapse.expression.pojo.ExpressionParam
 import org.eclipse.lemminx.customservice.synapse.expression.pojo.FunctionCompletionItem;
 import org.eclipse.lemminx.customservice.synapse.expression.pojo.Functions;
 import org.eclipse.lemminx.customservice.synapse.mediator.tryout.pojo.Property;
+import org.eclipse.lemminx.customservice.synapse.parser.ConfigDetails;
 import org.eclipse.lemminx.customservice.synapse.parser.Node;
 import org.eclipse.lemminx.customservice.synapse.parser.config.ConfigParser;
 import org.eclipse.lemminx.customservice.synapse.syntaxTree.SyntaxTreeGenerator;
@@ -394,11 +395,11 @@ public class ExpressionCompletionUtils {
      */
     public static List<Property> getConfigs(String projectPath) {
 
-        List<Node> configurables = ConfigParser.getConfigDetails(projectPath);
+        List<ConfigDetails> configurables = ConfigParser.getConfigDetails(projectPath);
         if (configurables != null) {
             List<Property> configs = new ArrayList<>();
-            for (Node node : configurables) {
-                configs.add(new Property(node.getKey(), node.getValue()));
+            for (ConfigDetails config : configurables) {
+                configs.add(new Property(config.getKey(), config.getType()));
             }
             return configs;
         }

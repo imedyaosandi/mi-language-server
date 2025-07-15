@@ -14,11 +14,37 @@
 package org.eclipse.lemminx.customservice.synapse.parser;
 
 import org.eclipse.lsp4j.Range;
+import org.eclipse.lsp4j.jsonrpc.messages.Either;
+
+import java.util.List;
 
 public class ConfigDetails {
 
-    public String key;
-    public String value;
-    public Range range;
+    private String key;
+    private String type;
+    private String value;
+    private Either<Range, List<Range>> range;
 
+    public ConfigDetails(String key, String type, String value, Either<Range, List<Range>> range) {
+        this.key = key;
+        this.type = type;
+        this.value = value;
+        this.range = range;
+    }
+
+    public String getKey() {
+        return key;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public String getValue() {
+        return value;
+    }
+
+    public Either<Range, List<Range>> getRange() {
+        return range;
+    }
 }

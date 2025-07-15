@@ -15,6 +15,7 @@ package org.eclipse.lemminx.synapse.pom.parser;
 
 import org.eclipse.lemminx.customservice.synapse.parser.AdvanceDetails;
 import org.eclipse.lemminx.customservice.synapse.parser.BuildDetails;
+import org.eclipse.lemminx.customservice.synapse.parser.ConfigDetails;
 import org.eclipse.lemminx.customservice.synapse.parser.DependenciesDetails;
 import org.eclipse.lemminx.customservice.synapse.parser.DependencyDetails;
 import org.eclipse.lemminx.customservice.synapse.parser.DockerDetails;
@@ -41,7 +42,7 @@ public class PomParserTest {
     private final DockerDetails dockerDetails;
     private final DependenciesDetails dependenciesDetails;
     private final UnitTestDetails unitTestDetails;
-    private final List<Node> configurables;
+    private final List<ConfigDetails> configurables;
 
     public PomParserTest() {
         String path = PomParserTest.class.getResource(PROJECT_PATH).getPath();
@@ -378,9 +379,9 @@ public class PomParserTest {
 
     @Test
     public void testConfigurables() {
-        Node config = configurables.get(0);
+        ConfigDetails config = configurables.get(0);
         Range range = config.getRange().getLeft();
-        assertEquals("string", config.getValue());
+        assertEquals("string", config.getType());
         assertEquals("name", config.getKey());
         assertEquals(1, range.getStart().getLine());
         assertEquals(1, range.getStart().getCharacter());
@@ -388,7 +389,7 @@ public class PomParserTest {
         assertEquals(12, range.getEnd().getCharacter());
         config = configurables.get(1);
         range = config.getRange().getLeft();
-        assertEquals("cert", config.getValue());
+        assertEquals("cert", config.getType());
         assertEquals("cert_path", config.getKey());
         assertEquals(2, range.getStart().getLine());
         assertEquals(1, range.getStart().getCharacter());

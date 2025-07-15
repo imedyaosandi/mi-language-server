@@ -22,7 +22,7 @@ public class OverviewPageDetailsResponse {
     private BuildDetails buildDetails;
     private DependenciesDetails dependencies;
     private UnitTestDetails unitTest;
-    private List<Node> configurables;
+    private List<ConfigDetails> configurables;
 
     public OverviewPageDetailsResponse() {
         primaryDetails = new PrimaryDetails();
@@ -48,16 +48,16 @@ public class OverviewPageDetailsResponse {
         return this.unitTest;
     }
 
-    public List<Node> getConfigurables() {
+    public List<ConfigDetails> getConfigurables() {
 
         return configurables;
     }
 
-    public void setConfig(Node config) {
+    public void setConfig(ConfigDetails config) {
         this.configurables.add(config);
     }
 
-    public void setConfigurables(List<Node> configurables) {
+    public void setConfigurables(List<ConfigDetails> configurables) {
 
         this.configurables = configurables;
     }

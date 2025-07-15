@@ -30,17 +30,23 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class ConfigParser {
 
     private static final Logger LOGGER = Logger.getLogger(ConfigParser.class.getName());
+	private static final String ENV_KEY_VALUE_REGEX = "^(\\\\s*)([A-Za-z0-9_.-]+)(\\\\s*=\\\\s*)(.*)$";
 
-    public static List<Node> getConfigDetails(String projectUri) {
+    public static List<ConfigDetails> getConfigDetails(String projectUri) {
 
-        List<Node> result = new ArrayList<>();
+        List<ConfigDetails> result = new ArrayList<>();
+        Map<String, String> envValueList = processEnvFile(Path.of(projectUri, ".env"));
         File propertyFilePath = getFilePath(projectUri);
         if (isConfigFileExist(propertyFilePath)) {
             try (BufferedReader reader = new BufferedReader(new FileReader(propertyFilePath))) {
@@ -55,7 +61,8 @@ public class ConfigParser {
                     int delimiterIndex = line.indexOf(':');
                     if (delimiterIndex != -1) {
                         String key = line.substring(0, delimiterIndex).trim();
-                        result.add(new Node(key, line.substring(delimiterIndex + 1).trim(),
+                        result.add(new ConfigDetails(key, line.substring(delimiterIndex + 1).trim(),
+                                envValueList.get(key),
                                 Either.forLeft(new Range(
                                         new Position(lineNumber, line.indexOf(key) + 1),
                                         new Position(lineNumber, line.length() + 1)))));
@@ -77,9 +84,9 @@ public class ConfigParser {
                 UpdateResponse updateResponse = new UpdateResponse();
                 int startLine = fileLines.size();
                 for (ConfigDetails entry : request.configs) {
-                    String value = entry.key + Constants.COLON + entry.value;
-                    if (entry.range != null) {
-                        Range range = entry.range;
+                    String value = entry.getKey() + Constants.COLON + entry.getValue();
+                    if (entry.getRange() != null && entry.getRange().isLeft()) {
+                        Range range = entry.getRange().getLeft();
                         updateResponse.add(new TextEdit(new Range(range.getStart(),
                                 new Position(range.getStart().getLine(), range.getEnd().getCharacter())), value));
                     } else {
@@ -99,13 +106,34 @@ public class ConfigParser {
     public static List<ConfigurableEntry> scanConfigurableEntries(String projectPath)
             throws IOException {
 
-        List<Node> configDetails = getConfigDetails(projectPath);
+        List<ConfigDetails> configDetails = getConfigDetails(projectPath);
         List<ConfigurableEntry> configurableEntries = new ArrayList<>();
-        for (Node configDetail : configDetails) {
-            ConfigurableEntry configurableEntry = new ConfigurableEntry(configDetail.getKey(), configDetail.getValue());
+        for (ConfigDetails configDetail : configDetails) {
+            ConfigurableEntry configurableEntry = new ConfigurableEntry(configDetail.getKey(), configDetail.getType());
             configurableEntries.add(configurableEntry);
         }
         return configurableEntries;
+    }
+
+    private static Map<String, String> processEnvFile(Path envFilePath) {
+
+        Map<String, String> envMap = new LinkedHashMap<>();
+        String content = null;
+        try {
+            content = Files.readString(envFilePath);
+        } catch (IOException e) {
+            LOGGER.log(Level.WARNING, "Error occurred while reading env file.");
+            return envMap;
+        }
+
+        Pattern pattern = Pattern.compile(ENV_KEY_VALUE_REGEX, Pattern.MULTILINE);
+        Matcher matcher = pattern.matcher(content);
+        while (matcher.find()) {
+            String key = matcher.group(2).trim();
+            String value = matcher.group(4).trim();
+            envMap.put(key, value);
+        }
+        return envMap;
     }
 
     private static File getFilePath(String projectUri) {
