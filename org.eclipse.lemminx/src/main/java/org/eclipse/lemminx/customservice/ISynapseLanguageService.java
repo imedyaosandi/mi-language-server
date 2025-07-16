@@ -278,4 +278,7 @@ public interface ISynapseLanguageService {
 
     @JsonRequest
     CompletableFuture<List<ConfigDetails>> getConfigurableList();
+
+    @JsonRequest
+    CompletableFuture<String> getLocalInboundEndpointsListForCopilot();
 }

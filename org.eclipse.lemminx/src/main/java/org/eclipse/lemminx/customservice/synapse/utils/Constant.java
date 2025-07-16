@@ -557,6 +557,7 @@ public class Constant {
     public static final String FAVOURITES = "favourites";
     public static final String ARTIFACT_ID = "artifactId";
     public static final String CONNECTOR_NAME = "connectorName";
+    public static final String CONNECTOR_TYPE = "connectorType";
     public static final String HELP = "help";
     public static final String REQUIRED = "required";
     public static final String HELP_TIP = "helpTip";
@@ -626,6 +627,10 @@ public class Constant {
     public static final String GROUP_NAME = "groupName";
     public static final String GENERIC = "Generic";
     public static final String ENABLE_CONDITION = "enableCondition";
+    public static final String BUILTIN_INBOUND_ENDPOINT = "builtin-inbound-endpoint";
+    public static final String COMBO = "combo";
+    public static final String COMBO_VALUES = "comboValues";
+    public static final String TRUE = "true";
 
     static {
         // AI Connection to Display Name bi-Mapping

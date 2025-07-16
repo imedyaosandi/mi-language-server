@@ -14,6 +14,12 @@
 
 package org.eclipse.lemminx.customservice.synapse.inbound.conector;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.NullNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.fge.jackson.JsonLoader;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -54,6 +60,7 @@ public class InboundConnectorHolder {
     private Map<String, JsonObject> localInboundConnectors;
     private JsonObject inboundConnectorListJson;
     private String projectRuntimeVersion;
+    private String localInboundEndpointsListForCopilot;
 
     public InboundConnectorHolder() {
 
@@ -71,11 +78,12 @@ public class InboundConnectorHolder {
         this.projectId = Utils.getHash(projectPath);
         this.projectRuntimeVersion = projectRuntimeVersion;
         this.tempFolderPath = System.getProperty("user.home") + File.separator + ".wso2-mi" + File.separator +
-                Constant.INBOUND_CONNECTORS + File.separator + new File(projectPath).getName() + "_" +projectId;
+                Constant.INBOUND_CONNECTORS + File.separator + new File(projectPath).getName() + "_" + projectId;
         this.localInboundConnectors = Utils.getUISchemaMap("org/eclipse/lemminx/inbound-endpoints/"
                 + projectRuntimeVersion.replace(".", StringUtils.EMPTY));
         getCustomInboundConnectors();
         loadInboundConnectors();
+        this.localInboundEndpointsListForCopilot = generateInboundConnectorArray();
     }
 
     private void loadInboundConnectors() {
@@ -225,6 +233,11 @@ public class InboundConnectorHolder {
         return inboundConnectorListJson;
     }
 
+    public String getLocalInboundEndpointsListForCopilot() {
+
+        return localInboundEndpointsListForCopilot;
+    }
+
     public InboundConnectorResponse getInboundConnectorSchema(String connectorName) {
 
         InboundConnectorResponse inboundConnector = new InboundConnectorResponse();
@@ -283,5 +296,102 @@ public class InboundConnectorHolder {
     public void setProjectPath(String projectPath) {
 
         this.projectPath = projectPath;
+    }
+
+    public String generateInboundConnectorArray() {
+
+        String localInboundConnectorList = StringUtils.EMPTY;
+        String metadataJson = this.inboundConnectorListJson.toString();
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode inboundConnectorMetadata = null;
+        try {
+            inboundConnectorMetadata = mapper.readTree(metadataJson);
+        } catch (JsonProcessingException e) {
+            LOGGER.log(Level.SEVERE, "Failed to parse inbound-connector metadata JSON.", e);
+            return localInboundConnectorList;
+        }
+        ArrayNode connectorArray = mapper.createArrayNode();
+
+        for (JsonNode inboundConnectorData : inboundConnectorMetadata.path(Constant.INBOUND_CONNECTOR_DATA)) {
+            if (!Constant.BUILTIN_INBOUND_ENDPOINT.equals(inboundConnectorData.path(Constant.TYPE).asText())) {
+                continue;
+            }
+            String id = inboundConnectorData.path(Constant.ID).asText();
+            String connectorName = id;
+            String description = inboundConnectorData.path(Constant.DESCRIPTION).asText(StringUtils.EMPTY);
+
+            InputStream inputStream = JsonLoader.class.getResourceAsStream("/org/eclipse/lemminx/inbound-endpoints/"
+                            + this.projectRuntimeVersion.replace(".", StringUtils.EMPTY) + "/" + id + Constant.JSON_FILE_EXT);
+            if (inputStream == null) {
+                continue;
+            }
+            JsonNode inboundConnectorUISchema = null;
+            try {
+                inboundConnectorUISchema = mapper.readTree(inputStream);
+            } catch (IOException e) {
+                LOGGER.log(Level.SEVERE, "Failed to read or parse the inbound-connector UI schema JSON.", e);
+                return localInboundConnectorList;
+            }
+            ObjectNode inboundConnectorObject = mapper.createObjectNode();
+
+            inboundConnectorObject.put(Constant.CONNECTOR_NAME, connectorName);
+            inboundConnectorObject.put(Constant.DESCRIPTION, description);
+            inboundConnectorObject.put(Constant.CONNECTOR_TYPE, Constant.EVENT_INTEGRATION);
+
+            ObjectNode versionNode = mapper.createObjectNode();
+            ArrayNode operationsArray = mapper.createArrayNode();
+            ObjectNode initOperation = mapper.createObjectNode();
+            initOperation.put(Constant.NAME, Constant.INIT);
+            ArrayNode parametersArray = mapper.createArrayNode();
+
+            for (JsonNode group : inboundConnectorUISchema.path(Constant.ELEMENTS)) {
+                JsonNode elements = group.path(Constant.VALUE).path(Constant.ELEMENTS);
+                for (JsonNode element : elements) {
+                    if (!Constant.ATTRIBUTE.equals(element.path(Constant.TYPE).asText())) {
+                        continue;
+                    }
+
+                    JsonNode val = element.path(Constant.VALUE);
+                    ObjectNode param = mapper.createObjectNode();
+
+                    String paramName = val.path(Constant.NAME).asText();
+                    String inputType = val.path(Constant.INPUT_TYPE).asText();
+                    String displayName = val.path(Constant.DISPLAY_NAME).asText();
+                    boolean required = Constant.TRUE.equals(val.path(Constant.REQUIRED).asText());
+                    JsonNode defaultValue = val.has(Constant.DEFAULT_VALUE) ? val.get(Constant.DEFAULT_VALUE) : NullNode.getInstance();
+
+                    param.put(Constant.NAME, paramName);
+                    param.put(Constant.TYPE, inputType);
+                    param.put(Constant.REQUIRED, required);
+                    param.set(Constant.DEFAULT_VALUE, defaultValue);
+
+                    StringBuilder descBuilder = new StringBuilder(displayName);
+                    if (Constant.COMBO.equals(inputType) && val.has(Constant.COMBO_VALUES)) {
+                        List<String> values = new ArrayList<>();
+                        for (JsonNode item : val.path(Constant.COMBO_VALUES)) {
+                            values.add(item.asText());
+                        }
+                        descBuilder.append(" - supported values: ").append(values.toString());
+                    }
+                    param.put(Constant.DESCRIPTION, descBuilder.toString());
+
+                    parametersArray.add(param);
+                }
+            }
+
+            initOperation.set(Constant.PARAMETERS, parametersArray);
+            operationsArray.add(initOperation);
+            versionNode.set(Constant.OPERATIONS, operationsArray);
+            inboundConnectorObject.set(Constant.VERSION, versionNode);
+
+            connectorArray.add(inboundConnectorObject);
+        }
+
+        try {
+            localInboundConnectorList = new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(connectorArray);
+        } catch (JsonProcessingException e) {
+            LOGGER.log(Level.SEVERE, "Failed to serialize inbound-connector metadata to a JSON string.", e);
+        }
+        return localInboundConnectorList;
     }
 }

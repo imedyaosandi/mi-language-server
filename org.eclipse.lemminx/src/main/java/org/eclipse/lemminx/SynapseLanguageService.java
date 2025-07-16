@@ -750,6 +750,12 @@ public class SynapseLanguageService implements ISynapseLanguageService {
         return CompletableFuture.supplyAsync(() -> ConfigParser.getConfigDetails(projectUri));
     }
 
+    @Override
+    public CompletableFuture<String> getLocalInboundEndpointsListForCopilot() {
+
+        return CompletableFuture.supplyAsync(() -> inboundConnectorHolder.getLocalInboundEndpointsListForCopilot());
+    }
+
     public String getProjectUri() {
         return projectUri;
     }
