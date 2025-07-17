@@ -15,7 +15,6 @@ package org.eclipse.lemminx.customservice.synapse.parser.config;
 
 import org.eclipse.lemminx.customservice.synapse.parser.ConfigDetails;
 import org.eclipse.lemminx.customservice.synapse.parser.Constants;
-import org.eclipse.lemminx.customservice.synapse.parser.Node;
 import org.eclipse.lemminx.customservice.synapse.parser.UpdateConfigRequest;
 import org.eclipse.lemminx.customservice.synapse.parser.UpdateResponse;
 import org.eclipse.lsp4j.Position;
@@ -41,7 +40,7 @@ import java.util.regex.Pattern;
 public class ConfigParser {
 
     private static final Logger LOGGER = Logger.getLogger(ConfigParser.class.getName());
-	private static final String ENV_KEY_VALUE_REGEX = "^(\\\\s*)([A-Za-z0-9_.-]+)(\\\\s*=\\\\s*)(.*)$";
+    private static final String ENV_KEY_VALUE_REGEX = "^(\\s*)([A-Za-z0-9_.-]+)(\\s*=\\s*)(.*)$";
 
     public static List<ConfigDetails> getConfigDetails(String projectUri) {
 
