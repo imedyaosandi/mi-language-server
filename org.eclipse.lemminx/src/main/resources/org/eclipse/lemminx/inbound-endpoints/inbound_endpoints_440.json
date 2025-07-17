@@ -133,6 +133,11 @@
       "name": "Pulsar (Inbound)",
       "id": "org.wso2.integration.inbound.PulsarMessageConsumer",
       "type": "inbound-endpoint"
+    },
+    {
+      "name": "Salesforce PubSub",
+      "id": "org.wso2.carbon.inbound.sf.pubsub.SFPubSubInboundFactory",
+      "type": "inbound-endpoint"
     }
   ]
 }
