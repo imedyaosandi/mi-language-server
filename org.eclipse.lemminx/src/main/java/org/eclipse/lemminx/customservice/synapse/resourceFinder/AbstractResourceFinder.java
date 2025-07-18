@@ -116,12 +116,12 @@ public abstract class AbstractResourceFinder {
     public String loadDependentResources(String projectPath) {
 
         initDependentResourcesMap();
-        String projectName = Path.of(projectPath).getFileName().toString();
+        String projectName = new File(projectPath).getName();
         Path projectDependenciesTempDir = Path.of(System.getProperty(Constant.USER_HOME), Constant.WSO2_MI,
                 Constant.INTEGRATION_PROJECT_DEPENDENCIES);
         // Pattern to match the project dependency dir in cached dir
         final String projectDependencyDirPattern = "^" + projectName + "_[a-zA-Z0-9]+$";
-
+        Map<String, List<String>> duplicates = new HashMap<>();
         try (var projectDirs = list(projectDependenciesTempDir)) {
             // Find the dependency directory for the current project
             Path projectDependencyDir = projectDirs
@@ -135,10 +135,12 @@ public abstract class AbstractResourceFinder {
                 Path extractedDir = projectDependencyDir.resolve(Constant.EXTRACTED);
                 if (exists(extractedDir) && isDirectory(extractedDir)) {
                     Map<String, ResourceResponse> dependentResourcesMap = getDependentResourcesMap();
+                    Map<String, List<String>> artifactNameToProjects = new HashMap<>();
                     try (var dependentProjects = list(extractedDir)) {
                         // Iterate over each dependent project directory
                         for (Path dependentProject : dependentProjects.toArray(Path[]::new)) {
                             if (isDirectory(dependentProject)) {
+                                String projectNameDep = dependentProject.getFileName().toString();
                                 // For each resource type, find and merge resources from the dependent project
                                 for (Map.Entry<String, ResourceResponse> entry : dependentResourcesMap.entrySet()) {
                                     String type = entry.getKey();
@@ -148,8 +150,16 @@ public abstract class AbstractResourceFinder {
                                     ResourceResponse resources =
                                             findResources(dependentProject.toString(), List.of(requestedResource));
                                     mergeResourceResponses(dependentResources, resources);
+
+                                    addArtifactNamesToProjects(resources, projectNameDep, artifactNameToProjects);
                                 }
                             }
+                        }
+                    }
+                    // Find duplicated artifacts
+                    for (Map.Entry<String, List<String>> entry : artifactNameToProjects.entrySet()) {
+                        if (entry.getValue().size() > 1) {
+                            duplicates.put(entry.getKey(), entry.getValue());
                         }
                     }
                 }
@@ -158,12 +168,61 @@ public abstract class AbstractResourceFinder {
             LOGGER.warning("Failed to load dependent resources for project: " + projectPath + ". Error: " + e.getMessage());
             return "Failed to load dependent resources for project: " + projectPath;
         }
-        return "Dependent resources loaded successfully for project: " + projectPath;
+
+        if (!duplicates.isEmpty()) {
+            String duplicateMsg = generateDuplicateArtifactMessage(duplicates, projectPath);
+            LOGGER.warning(duplicateMsg);
+            return duplicateMsg;
+        }
+        return "Success: Dependent resources loaded successfully for project: " + projectPath;
     }
 
     public Map<String, ResourceResponse> getDependentResourcesMap() {
 
         return dependentResourcesMap;
+    }
+
+    /**
+     * Adds artifact names from the given ResourceResponse to the artifactNameToProjects map,
+     * associating each artifact name with the dependent project name.
+     *
+     * @param resources              the ResourceResponse containing resources to process
+     * @param projectNameDep         the name of the dependent project
+     * @param artifactNameToProjects the map to update with artifact names and their associated projects
+     */
+    private void addArtifactNamesToProjects(ResourceResponse resources, String projectNameDep,
+                                            Map<String, List<String>> artifactNameToProjects) {
+
+        if (resources != null && resources.getResources() != null) {
+            for (Resource resource : resources.getResources()) {
+                String name = resource.getName();
+                if (name != null) {
+                    artifactNameToProjects.computeIfAbsent(name, k -> new ArrayList<>()).add(projectNameDep);
+                }
+            }
+        }
+    }
+
+    /**
+     * Generates a detailed message describing artifacts that were found among multiple dependent projects.
+     *
+     * @param duplicates  a map where the key is the artifact name and the value is a list of project names containing the artifact
+     * @param projectPath the absolute path to the project being analyzed
+     * @return a formatted string message listing duplicate artifacts and their locations
+     */
+    private String generateDuplicateArtifactMessage(Map<String, List<String>> duplicates, String projectPath) {
+
+        StringBuilder duplicateMsg = new StringBuilder();
+        duplicateMsg.append("Dependent resources loaded, but duplicate dependencies found for project: ")
+                .append(projectPath).append("\n");
+        duplicateMsg.append("The following artifacts are common in these dependencies:\n\n");
+        for (Map.Entry<String, List<String>> entry : duplicates.entrySet()) {
+            duplicateMsg.append("Artifact: ").append(entry.getKey())
+                    .append(" found in: ").append(entry.getValue()).append("\n");
+        }
+        duplicateMsg.append("\n");
+        duplicateMsg.append("Please avoid having artifacts with the same name and continue.\n");
+        return duplicateMsg.toString();
     }
 
     /**
