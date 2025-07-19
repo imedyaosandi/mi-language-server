@@ -124,6 +124,13 @@ public abstract class AbstractResourceFinder {
         Map<String, List<String>> duplicates = new HashMap<>();
         Map<String, ResourceResponse> tempResourcesMap = new HashMap<>();
         Map<String, List<String>> artifactNameToProjects = new HashMap<>();
+
+        // Collect main project artifact names
+        for (String type : dependentResourcesMap.keySet()) {
+            ResourceResponse mainResources = findResources(projectPath, type);
+            addArtifactNamesToProjects(mainResources, projectName, artifactNameToProjects);
+        }
+
         try (var projectDirs = list(projectDependenciesTempDir)) {
             // Find the dependency directory for the current project
             Path projectDependencyDir = projectDirs
