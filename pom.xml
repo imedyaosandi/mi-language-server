@@ -218,7 +218,7 @@
 				<groupId>org.apache.pdfbox</groupId>
 				<artifactId>pdfbox</artifactId>
 				<version>${apache.pdfbox.version}</version>
-        	</dependency>
+        		</dependency>
 		</dependencies>
 	</dependencyManagement>
 	<build>
