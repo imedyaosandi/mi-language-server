@@ -624,6 +624,7 @@ public class Constant {
     public static final String HIDDEN = "hidden";
     public static final String GENERATE_SEQUENCES = "generateSequences";
     public static final String EVENT_INTEGRATION = "event-integration";
+    public static final String INBUILT_INBOUND_ENDPOINT = "inbuilt-inbound-endpoint";
     public static final String GROUP_NAME = "groupName";
     public static final String GENERIC = "Generic";
     public static final String ENABLE_CONDITION = "enableCondition";

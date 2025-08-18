@@ -242,7 +242,8 @@ public class UISchemaMapper {
     }
 
     private static void updateSchemaForEventIntegrations(JsonObject schema) {
-        if (!schema.has(Constant.TYPE) || !Constant.EVENT_INTEGRATION.equals(schema.get(Constant.TYPE).getAsString())) {
+        List<String> inboundEndpointTypes = List.of(Constant.INBUILT_INBOUND_ENDPOINT, Constant.EVENT_INTEGRATION);
+        if (!schema.has(Constant.TYPE) || !inboundEndpointTypes.contains(schema.get(Constant.TYPE).getAsString())) {
             return;
         }
 
