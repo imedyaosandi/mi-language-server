@@ -352,7 +352,7 @@ public class RestApiAdmin {
             File existingSwaggerFile = new File(param.swaggerPath);
             if (existingSwaggerFile.exists()) {
                 return generateUpdatedSwaggerFromAPI(existingSwaggerFile, param.isJsonIn, param.isJsonOut,
-                        param.apiPath);
+                        param.apiPath, param.port);
             }
         }
         return generateSwaggerFromSynapseAPIByFormat(param.apiPath, param.isJsonOut, param.port);
@@ -416,7 +416,7 @@ public class RestApiAdmin {
     }
 
     private GenerateSwaggerResponse generateUpdatedSwaggerFromAPI(File existingSwaggerFile, boolean isJSONIn,
-                                                                  boolean isJSONOut, String apiPath) {
+                                                                  boolean isJSONOut, String apiPath, int port) {
 
         GenerateSwaggerResponse response = new GenerateSwaggerResponse();
         API api;
@@ -432,7 +432,7 @@ public class RestApiAdmin {
 
         try {
             String swaggerContent = Utils.readFile(existingSwaggerFile);
-            String generatedSwagger = generateUpdatedSwaggerFromAPI(swaggerContent, isJSONIn, isJSONOut, api);
+            String generatedSwagger = generateUpdatedSwaggerFromAPI(swaggerContent, isJSONIn, isJSONOut, api, port);
             response.setSwagger(generatedSwagger);
         } catch (IOException e) {
             LOGGER.log(Level.SEVERE, "Error occurred while reading the existing Swagger file.", e);
@@ -454,10 +454,10 @@ public class RestApiAdmin {
      * @return OpenApi definition of the updated API.
      * @throws APIGenException Error occurred while generating the updated definition.
      */
-    public String generateUpdatedSwaggerFromAPI(String existingSwagger, boolean isJSONIn, boolean isJSONOut, API api)
+    public String generateUpdatedSwaggerFromAPI(String existingSwagger, boolean isJSONIn, boolean isJSONOut, API api, int port)
             throws APIGenException {
 
         OpenAPIProcessor openAPIProcessor = new OpenAPIProcessor(api);
-        return openAPIProcessor.getUpdatedSwaggerFromApi(existingSwagger, isJSONIn, isJSONOut);
+        return openAPIProcessor.getUpdatedSwaggerFromApi(existingSwagger, isJSONIn, isJSONOut, port);
     }
 }

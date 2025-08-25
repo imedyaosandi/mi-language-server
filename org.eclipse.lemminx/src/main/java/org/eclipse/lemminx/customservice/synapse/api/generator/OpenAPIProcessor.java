@@ -192,7 +192,7 @@ public class OpenAPIProcessor {
                 }
             }
         } else {
-            addServersSection(openAPI, SwaggerConstants.DEFAULT_PORT);
+            addServersSection(openAPI, SwaggerConstants.DEFAULT_HTTP_PORT);
         }
     }
 
@@ -209,16 +209,20 @@ public class OpenAPIProcessor {
         } else {
             basePath = api.getContext();
         }
-        String host;
-        String scheme = SwaggerConstants.PROTOCOL_HTTP;
+        String httpHost, httpsHost;
+        int offset = SwaggerConstants.DEFAULT_HTTP_PORT - port;
         if (StringUtils.isNotBlank(api.getHostname()) && !"-1".equals(api.getPort())) {
-            host = api.getHostname() + ":" + api.getPort();
+            httpHost = api.getHostname() + ":" + port;
+            httpsHost = api.getHostname() + ":" + (SwaggerConstants.DEFAULT_HTTPS_PORT + offset);
         } else {
-            host = SwaggerConstants.DEFAULT_HOST + ":" + port;
+            httpHost = SwaggerConstants.DEFAULT_HOST + ":" + port;
+            httpsHost = SwaggerConstants.DEFAULT_HOST + ":" + (SwaggerConstants.DEFAULT_HTTPS_PORT + offset);
         }
-        Server server = new Server();
-        server.setUrl(scheme + "://" + host + basePath);
-        openAPI.setServers(Arrays.asList(server));
+        Server httpServer = new Server();
+        httpServer.setUrl(SwaggerConstants.PROTOCOL_HTTP + "://" + httpHost + basePath);
+        Server httpsServer = new Server();
+        httpsServer.setUrl(SwaggerConstants.PROTOCOL_HTTPS + "://" + httpsHost + basePath);
+        openAPI.setServers(Arrays.asList(httpServer, httpsServer));
     }
 
     /**
@@ -337,7 +341,7 @@ public class OpenAPIProcessor {
      * @param isJSONOut       output swagger data type JSON / YAML.
      * @return updated swagger definition as string.
      */
-    public String getUpdatedSwaggerFromApi(String existingSwagger, boolean isJSONIn, boolean isJSONOut)
+    public String getUpdatedSwaggerFromApi(String existingSwagger, boolean isJSONIn, boolean isJSONOut, int port)
             throws APIGenException {
 
         if (api == null) {
@@ -489,7 +493,7 @@ public class OpenAPIProcessor {
         // Adding the new path map
         openAPI.setPaths(newPaths);
         updateInfoSection(openAPI);
-        updateServersSection(openAPI);
+        addServersSection(openAPI, port);
 
         try {
             if (isJSONOut) {
