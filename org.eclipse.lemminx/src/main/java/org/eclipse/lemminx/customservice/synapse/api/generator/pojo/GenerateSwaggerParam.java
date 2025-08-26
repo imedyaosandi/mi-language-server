@@ -22,5 +22,5 @@ public class GenerateSwaggerParam {
     public String swaggerPath;
     public boolean isJsonIn;
     public boolean isJsonOut;
-    public int port = SwaggerConstants.DEFAULT_PORT;
+    public int port = SwaggerConstants.DEFAULT_HTTP_PORT;
 }

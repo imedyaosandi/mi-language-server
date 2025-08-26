@@ -178,7 +178,8 @@ public class SwaggerConstants {
     /**
      * Default port for Swagger API
      */
-    public static int DEFAULT_PORT = 8290;
+    public static int DEFAULT_HTTP_PORT = 8290;
+    public static int DEFAULT_HTTPS_PORT = 8253;
 
     /**
      *  Path param regex
