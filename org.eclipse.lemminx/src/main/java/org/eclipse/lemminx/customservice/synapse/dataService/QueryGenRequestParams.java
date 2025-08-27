@@ -22,44 +22,76 @@ public class QueryGenRequestParams {
     String url;
     String tableData;
     String datasourceName;
+    String driverPath;
+    String connectionName;
 
     public void setClassName(String className) {
+
         this.className = className;
     }
 
     public void setUsername(String username) {
+
         this.username = username;
     }
 
     public void setPassword(String password) {
+
         this.password = password;
     }
 
     public void setUrl(String url) {
+
         this.url = url;
     }
 
     public void setTableData(String tableData) {
+
         this.tableData = tableData;
     }
 
     public void setDatasourceName(String datasourceName) {
+
         this.datasourceName = datasourceName;
     }
 
+    public void setDriverPath(String driverPath) {
+
+        this.driverPath = driverPath;
+    }
+
+    public void setConnectionName(String connectionName) {
+
+        this.connectionName = connectionName;
+    }
+
     public String getClassName() {
+
         return className;
     }
 
     public String getUsername() {
+
         return username;
     }
 
     public String getPassword() {
+
         return password;
     }
 
     public String getUrl() {
+
         return url;
+    }
+
+    public String getDriverPath() {
+
+        return driverPath;
+    }
+
+    public String getConnectionName() {
+
+        return connectionName;
     }
 }

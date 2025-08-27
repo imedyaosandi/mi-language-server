@@ -13,6 +13,7 @@ target/
 .settings
 
 .idea/
+.java-version
 *.iml
 *.iws
 *.ipr

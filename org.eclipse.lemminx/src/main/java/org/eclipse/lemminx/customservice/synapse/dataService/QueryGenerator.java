@@ -125,8 +125,16 @@ public class QueryGenerator {
      */
     public static Map<String, List<Boolean>> getTableList(QueryGenRequestParams requestParams) {
         DBConnectionTester dbConnectionTester = new DBConnectionTester();
-        try (Connection connection = dbConnectionTester.getConnection(requestParams.url, requestParams.username,
-                requestParams.password, requestParams.className)) {
+        Connection connection = null;
+        try {
+            if (requestParams.driverPath.isEmpty() || requestParams.driverPath == null) {
+                connection = dbConnectionTester.getConnection(requestParams.url, requestParams.username,
+                        requestParams.password, requestParams.className);
+            } else {
+                connection = dbConnectionTester.getConnection(requestParams.url, requestParams.username,
+                        requestParams.password, requestParams.className, requestParams.driverPath);
+            }
+
             Map<String, List<Boolean>> tablesMap = new HashMap<String, List<Boolean>>();
             DatabaseMetaData mObject = null;
             if (connection != null) {
@@ -185,8 +193,7 @@ public class QueryGenerator {
      * Add a DB driver to the class loader
      *
      * @param driverPath folder path of the DB driver
-     * @param className DB connector class name in the driver
-     *
+     * @param className  DB connector class name in the driver
      * @return Whether the DB driver was successfully added to the class path
      */
     public static boolean addDriverToClassPath(String driverPath, String className) {
@@ -210,7 +217,6 @@ public class QueryGenerator {
      * Remove a DB driver from the class path
      *
      * @param driverPath folder path of the DB driver
-     *
      * @return Whether the DB driver was successfully removed from the class path
      */
     public static boolean removeDriverFromClassPath(String driverPath) {

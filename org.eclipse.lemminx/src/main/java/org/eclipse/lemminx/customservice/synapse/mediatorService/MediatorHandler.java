@@ -168,7 +168,6 @@ public class MediatorHandler {
 
     private SynapseConfigResponse generateConnectorSynapseConfig(STNode node, String mediator, Map<String, Object> data,
                                                                  Range range) {
-
         ConnectorAction operation = getConnectorOperation(node, mediator);
         if (operation != null) {
             List<OperationParameter> parameters = operation.getParameters();
@@ -205,7 +204,6 @@ public class MediatorHandler {
     }
 
     protected Map<String, Object> processConnectorParameter(Object data) {
-
         Map<String, Object> dataValue = new HashMap<>();
         boolean isExpressionField = false;
         if (data instanceof String) {
@@ -257,6 +255,7 @@ public class MediatorHandler {
 
                     // if count of value larger than 0
                     dataValueStr.append("[");
+                    int j =0;
                     for (Object key : dataValueItem.keySet()) {
                         Object propertyValue;
                         if (dataValueItem.get(key) instanceof LinkedTreeMap) {
@@ -271,9 +270,16 @@ public class MediatorHandler {
                             propertyValue = ((String) propertyValue).replace("\"", "\\\"");
                         }
 
-                        dataValueStr.append(String.format("\"%s\",", propertyValue));
+                        dataValueStr.append(String.format("\"%s\"", propertyValue));
+                        if(j < dataValueItem.keySet().size()-1){
+                            dataValueStr.append(", ");
+                        }
+                       j++;
                     }
-                    dataValueStr.append("],");
+                    dataValueStr.append("]");
+                    if (i < dataValueList.size() - 1) {
+                        dataValueStr.append(", ");
+                    }
                 }
                 i++;
             }

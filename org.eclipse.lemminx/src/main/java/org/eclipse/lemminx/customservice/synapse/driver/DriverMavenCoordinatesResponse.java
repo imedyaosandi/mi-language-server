@@ -15,46 +15,66 @@
 package org.eclipse.lemminx.customservice.synapse.driver;
 
 /**
- * Request data for downloading a JDBC driver for a specific connector and connection type.
+ * Request Maven Coordinates for driver.
  */
-public class DriverDownloadRequest {
+
+public class DriverMavenCoordinatesResponse {
 
     private String groupId;
     private String artifactId;
     private String version;
+    private boolean found;
 
-    public DriverDownloadRequest() {
-        
+    public DriverMavenCoordinatesResponse() {
+
     }
 
-    public DriverDownloadRequest(String groupId,String artifactId,String version) {
+    public DriverMavenCoordinatesResponse(String groupId, String artifactId, String version, boolean found) {
 
-        this.groupId=groupId;
-        this.artifactId=artifactId;
-        this.version=version;
+        this.groupId = groupId;
+        this.artifactId = artifactId;
+        this.version = version;
+        this.found = found;
+
     }
 
     public String getGroupId() {
+
         return groupId;
     }
 
     public void setArtifactId(String artifactId) {
+
         this.artifactId = artifactId;
     }
 
     public String getArtifactId() {
+
         return artifactId;
     }
 
     public void setGroupId(String groupId) {
+
         this.groupId = groupId;
     }
+
     public String getVersion() {
+
         return version;
     }
 
     public void setVersion(String version) {
+
         this.version = version;
     }
 
+    public void setFound(boolean found) {
+
+        this.found = found;
+    }
+
+    public boolean getFound() {
+
+        return found;
+    }
 }

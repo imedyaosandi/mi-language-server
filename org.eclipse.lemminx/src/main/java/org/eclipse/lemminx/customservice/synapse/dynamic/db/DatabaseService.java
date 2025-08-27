@@ -23,9 +23,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import org.apache.commons.lang3.StringUtils;
+import org.eclipse.lemminx.customservice.synapse.db.DBConnectionTester;
 
 public class DatabaseService {
+
     private static final Logger LOGGER = Logger.getLogger(DatabaseService.class.getName());
 
     private static final String FIELD_TYPE_ATTRIBUTE = "attribute";
@@ -39,6 +42,7 @@ public class DatabaseService {
 
     /**
      * Retrieves the columns of a specified table from the database and returns them as a list of DynamicField objects.
+     *
      * @param connectionUrl
      * @param username
      * @param password
@@ -48,10 +52,12 @@ public class DatabaseService {
      * @return List<DynamicField> containing the columns of the table.
      */
     public List<DynamicField> getTableColumns(String connectionUrl, String username, String password, String table,
-            String fieldName, boolean markNull) {
+                                              String fieldName, boolean markNull, String className, String driverPath) {
+
         List<DynamicField> fields = new ArrayList<>();
 
-        try (Connection conn = DriverManager.getConnection(connectionUrl, username, password)) {
+        try (Connection conn = DBConnectionTester.getConnection(connectionUrl, username, password, className,
+                driverPath)) {
             DatabaseMetaData metaData = conn.getMetaData();
 
             try (ResultSet columns = metaData.getColumns(null, null, table, null)) {
@@ -91,6 +97,7 @@ public class DatabaseService {
     /**
      * Retrieves the parameters of a specified stored procedure from the database and returns them as a list of
      * DynamicField objects.
+     *
      * @param connectionUrl
      * @param username
      * @param password
@@ -99,10 +106,13 @@ public class DatabaseService {
      * @return List<DynamicField> containing the parameters of the stored procedure.
      */
     public List<DynamicField> getStoredProcedureParameters(String connectionUrl, String username, String password,
-            String procedureName, String fieldName) {
+                                                           String procedureName, String fieldName, String className,
+                                                           String driverPath) {
+
         List<DynamicField> fields = new ArrayList<>();
 
-        try (Connection conn = DriverManager.getConnection(connectionUrl, username, password)) {
+        try (Connection conn = DBConnectionTester.getConnection(connectionUrl, username, password, className,
+                driverPath)) {
             DatabaseMetaData metaData = conn.getMetaData();
 
             try (ResultSet parameters = metaData.getProcedureColumns(null, null, procedureName, null)) {
@@ -151,6 +161,7 @@ public class DatabaseService {
      * @return An XML-safe version of the name.
      */
     private String toXmlSafeName(String name) {
+
         if (StringUtils.isEmpty(name)) {
             return StringUtils.EMPTY;
         }
@@ -159,6 +170,7 @@ public class DatabaseService {
     }
 
     private String mapSqlTypeToInputType(String sqlType) {
+
         switch (sqlType.toUpperCase()) {
             case "VARCHAR":
             case "CHAR":

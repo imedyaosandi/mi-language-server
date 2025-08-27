@@ -31,6 +31,7 @@ import org.eclipse.lemminx.customservice.synapse.dataService.QueryGenRequestPara
 import org.eclipse.lemminx.customservice.synapse.db.DBConnectionTester;
 
 public class DynamicFieldsHandler {
+
     private final DatabaseService databaseService;
     private static final Logger log = Logger.getLogger(DynamicFieldsHandler.class.getName());
 
@@ -41,6 +42,7 @@ public class DynamicFieldsHandler {
     private static final String PARAM_DB_USER = "dbUser";
     private static final String PARAM_DB_PASSWORD = "dbPassword";
     private static final String PARAM_DRIVER_CLASS = "driverClass";
+    private static final String PARAM_DRIVER_PATH = "driverPath";
 
     private static final String OP_SELECT = "select";
     private static final String OP_DELETE = "delete";
@@ -52,6 +54,7 @@ public class DynamicFieldsHandler {
     private static final String OP_STORED_PROCEDURE = "storedProcedure";
 
     public DynamicFieldsHandler() {
+
         this.databaseService = new DatabaseService();
     }
 
@@ -62,6 +65,7 @@ public class DynamicFieldsHandler {
      * @return A response containing the dynamic fields.
      */
     public GetDynamicFieldsResponse handleDynamicFieldsRequest(GetDynamicFieldsRequest request) {
+
         GetDynamicFieldsResponse response = new GetDynamicFieldsResponse();
         Map<String, List<DynamicField>> fields = new HashMap<>();
         response.setFields(fields);
@@ -73,6 +77,7 @@ public class DynamicFieldsHandler {
             String username = getParameterValue(request, PARAM_DB_USER);
             String password = getParameterValue(request, PARAM_DB_PASSWORD);
             String className = getParameterValue(request, PARAM_DRIVER_CLASS);
+            String driverPath = getParameterValue(request, PARAM_DRIVER_PATH);
             String operationName = request.getOperationName();
             String fieldName = request.getFieldName();
             String selectedValue = request.getSelectedValue();
@@ -83,7 +88,8 @@ public class DynamicFieldsHandler {
             }
 
             try {
-                Connection connection = DBConnectionTester.getConnection(url, username, password, className);
+                Connection connection = DBConnectionTester.getConnection(url, username, password, className,
+                        driverPath);
 
                 if (connection == null) {
                     log.log(Level.SEVERE, "Failed to establish database connection.");
@@ -100,13 +106,14 @@ public class DynamicFieldsHandler {
                         case OP_INSERT:
                         case OP_EXECUTE_QUERY:
                             boolean markNull = !(OP_SELECT.equals(operationName) || OP_DELETE.equals(operationName));
-                            dynamicData = databaseService.getTableColumns(url, username, password, selectedValue,
-                                    fieldName, markNull);
+                            dynamicData =
+                                    databaseService.getTableColumns(url, username, password, selectedValue, fieldName,
+                                            markNull, className, driverPath);
                             break;
                         case OP_CALL:
                         case OP_STORED_PROCEDURE:
                             dynamicData = databaseService.getStoredProcedureParameters(url, username, password,
-                                    selectedValue, fieldName);
+                                    selectedValue, fieldName, className, driverPath);
                             break;
                         default:
                             log.log(Level.INFO, "Operation not supported for dynamic fields: " + operationName);
@@ -119,7 +126,7 @@ public class DynamicFieldsHandler {
                     if (!FIELD_TABLE.equals(fieldName)) {
                         log.log(Level.FINE, "Dynamic fields requested for field other than 'table': " + fieldName);
                     }
-                    if(StringUtils.isBlank(selectedValue) && FIELD_TABLE.equals(fieldName)) {
+                    if (StringUtils.isBlank(selectedValue) && FIELD_TABLE.equals(fieldName)) {
                         log.log(Level.WARNING, "Selected value (table/procedure name) is null for field 'table'.");
                     }
                 }
@@ -138,19 +145,28 @@ public class DynamicFieldsHandler {
     /**
      * Retrieves the list of stored procedures from the database.
      *
-     * @param requestParams The request parameters containing the connection
-     * details.
+     * @param requestParams The request parameters containing the connection details.
      * @return A list of stored procedure names.
      */
     public List<String> getStoredProcedures(QueryGenRequestParams requestParams) {
+
         List<String> procedures = new ArrayList<>();
         String url = requestParams.getUrl();
         String username = requestParams.getUsername();
         String password = requestParams.getPassword();
+        String driverPath = requestParams.getDriverPath();
+        String className = requestParams.getClassName();
+        Connection connection = null;
 
         if (url != null && username != null && password != null) {
-            try (Connection conn = DriverManager.getConnection(url, username, password)) {
-                DatabaseMetaData metaData = conn.getMetaData();
+            try {
+                if (driverPath.isEmpty()) {
+                    connection = DBConnectionTester.getConnection(url, username, password, className);
+                } else {
+                    connection = DBConnectionTester.getConnection(url, username, password, className, driverPath);
+                }
+
+                DatabaseMetaData metaData = connection.getMetaData();
                 try (ResultSet rs = metaData.getProcedures(null, null, null)) {
                     while (rs.next()) {
                         String procedureName = rs.getString("PROCEDURE_NAME");
@@ -170,18 +186,16 @@ public class DynamicFieldsHandler {
 
     /**
      * Retrieves the value of a specific parameter from the request.
-     * 
+     *
      * @param request   The request containing the parameters.
      * @param paramName The name of the parameter to retrieve.
      * @return The value of the specified parameter, or null if not found.
      */
     private String getParameterValue(GetDynamicFieldsRequest request, String paramName) {
+
         if (request.getConnection() != null && request.getConnection().getParameters() != null) {
-            return request.getConnection().getParameters().stream()
-                    .filter(param -> paramName.equals(param.getName()))
-                    .findFirst()
-                    .map(param -> param.getValue())
-                    .orElse(null);
+            return request.getConnection().getParameters().stream().filter(param -> paramName.equals(param.getName()))
+                    .findFirst().map(param -> param.getValue()).orElse(null);
         }
         return null;
     }

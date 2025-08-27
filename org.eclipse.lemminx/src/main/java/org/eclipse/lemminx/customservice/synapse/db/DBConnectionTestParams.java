@@ -24,4 +24,5 @@ public class DBConnectionTestParams {
     public String dbName;
     public String url;
     public String className;
+    public String driverPath;
 }

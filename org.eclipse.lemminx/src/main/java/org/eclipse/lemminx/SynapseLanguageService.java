@@ -48,6 +48,7 @@ import org.eclipse.lemminx.customservice.synapse.db.DBConnectionTester;
 import org.eclipse.lemminx.customservice.synapse.debugger.entity.StepOverInfo;
 import org.eclipse.lemminx.customservice.synapse.dependency.tree.OverviewModelGenerator;
 import org.eclipse.lemminx.customservice.synapse.dependency.tree.pojo.OverviewModel;
+import org.eclipse.lemminx.customservice.synapse.driver.*;
 import org.eclipse.lemminx.customservice.synapse.expression.pojo.ExpressionError;
 import org.eclipse.lemminx.customservice.synapse.expression.ExpressionHelperProvider;
 import org.eclipse.lemminx.customservice.synapse.expression.ExpressionSignatureProvider;
@@ -106,8 +107,6 @@ import org.eclipse.lemminx.customservice.synapse.connectors.SchemaGenerate;
 import org.eclipse.lemminx.customservice.synapse.definition.SynapseDefinitionProvider;
 import org.eclipse.lemminx.customservice.synapse.directoryTree.DirectoryMapResponse;
 import org.eclipse.lemminx.customservice.synapse.directoryTree.DirectoryTreeBuilder;
-import org.eclipse.lemminx.customservice.synapse.driver.DriverDownloadRequest;
-import org.eclipse.lemminx.customservice.synapse.driver.DriverLoader;
 import org.eclipse.lemminx.customservice.synapse.dynamic.db.DynamicField;
 import org.eclipse.lemminx.customservice.synapse.dynamic.db.DynamicFieldsHandler;
 import org.eclipse.lemminx.customservice.synapse.dynamic.db.GetDynamicFieldsRequest;
@@ -256,12 +255,22 @@ public class SynapseLanguageService implements ISynapseLanguageService {
     @Override
     public CompletableFuture<DBConnectionTestResponse> testDBConnection(DBConnectionTestParams dbConnectionTestParams) {
 
-        DriverLoader.loadTempDrivers(projectUri);
         DBConnectionTester dbConnectionTester = new DBConnectionTester();
         boolean connectionStatus = dbConnectionTester.testDBConnection(dbConnectionTestParams.dbType,
-                dbConnectionTestParams.username, dbConnectionTestParams.password,
-                dbConnectionTestParams.host, dbConnectionTestParams.port, dbConnectionTestParams.dbName,
-                dbConnectionTestParams.url, dbConnectionTestParams.className);
+                    dbConnectionTestParams.username, dbConnectionTestParams.password,
+                    dbConnectionTestParams.host, dbConnectionTestParams.port, dbConnectionTestParams.dbName,
+                    dbConnectionTestParams.url, dbConnectionTestParams.className);
+        DBConnectionTestResponse response = new DBConnectionTestResponse(connectionStatus);
+        return CompletableFuture.supplyAsync(() -> response);
+    }
+
+    @Override
+    public CompletableFuture<DBConnectionTestResponse> loadDriverAndTestConnection(DBConnectionTestParams request){
+        DBConnectionTester dbConnectionTester = new DBConnectionTester();
+        boolean connectionStatus = dbConnectionTester.testDBConnection(request.dbType,
+                request.username, request.password,
+                request.host, request.port, request.dbName,
+                request.url, request.className, request.driverPath);
         DBConnectionTestResponse response = new DBConnectionTestResponse(connectionStatus);
         return CompletableFuture.supplyAsync(() -> response);
     }
@@ -723,19 +732,13 @@ public class SynapseLanguageService implements ISynapseLanguageService {
     @Override
     public CompletableFuture<Map<String, List<DynamicField>>> getDynamicFields(GetDynamicFieldsRequest request) {
 
-        return CompletableFuture.supplyAsync(() -> {
-            DriverLoader.loadTempDrivers(projectUri);
-            return dynamicFieldsHandler.handleDynamicFieldsRequest(request).getFields();
-        });
+        return CompletableFuture.supplyAsync(() -> dynamicFieldsHandler.handleDynamicFieldsRequest(request).getFields());
     }
 
     @Override
     public CompletableFuture<List<String>> getStoredProcedures(QueryGenRequestParams request) {
 
-        return CompletableFuture.supplyAsync(() -> {
-            DriverLoader.loadTempDrivers(projectUri);
-            return dynamicFieldsHandler.getStoredProcedures(request);
-        });
+        return CompletableFuture.supplyAsync(() -> dynamicFieldsHandler.getStoredProcedures(request));
     }
 
     @Override
@@ -743,8 +746,20 @@ public class SynapseLanguageService implements ISynapseLanguageService {
 
         return CompletableFuture.supplyAsync(() -> ConnectorDownloadManager.downloadDriverForConnector(
                 projectUri,
+                request.getGroupId(),
+                request.getArtifactId(),
+                request.getVersion()
+                ));
+    }
+
+    @Override
+    public CompletableFuture<DriverMavenCoordinatesResponse> getDriverMavenCoordinates(
+            DriverMavenCoordinatesRequest request){
+        return CompletableFuture.supplyAsync(() -> ConnectorDownloadManager.getDriverMavenCoordinates(
+                request.getFilePath(),
                 request.getConnectorName(),
-                request.getConnectionType()));
+                request.getConnectionType()
+        ));
     }
 
     @Override
