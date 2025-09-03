@@ -271,6 +271,8 @@ public class Constant {
     public static final String IC_CLASS = "icClass";
     public static final String DRIVER = "driver";
     public static final String URL = "url";
+    public static final String MAVEN_CENTRAL_URL = "https://search.maven.org/solrsearch/select?q=";
+    public static final String MAVEN_SEARCH_PARAM = "&rows=1&wt=json";
     public static final String USER = "user";
     public static final String COLUMN = "column";
     public static final String PRIORITY = "priority";
@@ -429,6 +431,7 @@ public class Constant {
     public static final String CALL_TEMPLATE = "call-template";
     public static final String STORE = "store";
     public static final String DEPENDENCY = "dependency";
+    public static final String DEPENDENCIES = "dependencies";
     public static final String INTEGRATION_PROJECT_DEPENDENCIES = "integration-project-dependencies";
     public static final String COMPONENT = "component";
     public static final String INCLUDE = "include";

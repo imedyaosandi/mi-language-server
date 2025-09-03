@@ -59,14 +59,6 @@ public class DriverGroupIdLookup {
                 return DRIVER_GROUP_IDS.get(pattern);
             }
         }
-
-        // Fallback for common patterns
-//        if (key.contains("postgre")) return "org.postgresql";
-//        if (key.contains("mysql")) return "mysql";
-//        if (key.contains("mssql") || key.contains("sqlserver")) return "com.microsoft.sqlserver";
-//        if (key.contains("oracle")) return "com.oracle.database.jdbc";
-//        if (key.contains("db2")) return "com.ibm.db2";
-
         return "unknown";
     }
 

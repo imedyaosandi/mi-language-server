@@ -126,8 +126,8 @@ public class DBConnectionTester {
             // Check username and password are empty due to Derby db can connect without username and password
             if (!connectionUrl.contains(DBConstant.DBTypes.DB_TYPE_DERBY_CONN) || !username.equals(
                     Constant.EMPTY_STRING) || !password.equals(Constant.EMPTY_STRING)) {
-                props.setProperty("user", username);
-                props.setProperty("password", password);
+                props.setProperty(Constant.USER, username);
+                props.setProperty(Constant.PASSWORD, password);
             }
             connection = driver.connect(connectionUrl, props);
 

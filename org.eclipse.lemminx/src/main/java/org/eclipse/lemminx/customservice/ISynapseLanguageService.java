@@ -44,7 +44,9 @@ import org.eclipse.lemminx.customservice.synapse.debugger.entity.ValidationRespo
 import org.eclipse.lemminx.customservice.synapse.dependency.tree.pojo.DependencyTree;
 import org.eclipse.lemminx.customservice.synapse.dependency.tree.pojo.OverviewModel;
 import org.eclipse.lemminx.customservice.synapse.directoryTree.DirectoryMapResponse;
-import org.eclipse.lemminx.customservice.synapse.driver.*;
+import org.eclipse.lemminx.customservice.synapse.driver.DriverDownloadRequest;
+import org.eclipse.lemminx.customservice.synapse.driver.DriverMavenCoordinatesResponse;
+import org.eclipse.lemminx.customservice.synapse.driver.DriverMavenCoordinatesRequest;
 import org.eclipse.lemminx.customservice.synapse.dynamic.db.DynamicField;
 import org.eclipse.lemminx.customservice.synapse.dynamic.db.GetDynamicFieldsRequest;
 import org.eclipse.lemminx.customservice.synapse.expression.pojo.ExpressionParam;

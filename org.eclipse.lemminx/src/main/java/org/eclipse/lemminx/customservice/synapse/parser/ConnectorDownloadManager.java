@@ -207,13 +207,13 @@ public class ConnectorDownloadManager {
                                                                    String connectionType) {
 
         try {
-            Object dependenciesObj = descriptorData.get("dependencies");
+            Object dependenciesObj = descriptorData.get(Constant.DEPENDENCIES);
             if (dependenciesObj != null && dependenciesObj instanceof List) {
                 List<Map<String, Object>> dependencies = (List<Map<String, Object>>) dependenciesObj;
                 Map<String, Object> exactMatch = null;
 
                 for (Map<String, Object> dependency : dependencies) {
-                    Object depConnType = dependency.get("connectionType");
+                    Object depConnType = dependency.get(Constant.CONNECTION_TYPE);
                     if (depConnType != null && connectionType.equalsIgnoreCase(depConnType.toString())) {
                         exactMatch = dependency;
                         break;
@@ -288,7 +288,7 @@ public class ConnectorDownloadManager {
 
             Invoker invoker = new DefaultInvoker();
             invoker.setMavenHome(projectPath.toFile());
-            invoker.setMavenExecutable(mvnwFile);// Set your Maven path
+            invoker.setMavenExecutable(mvnwFile);
 
             InvocationResult result = null;
             try {
@@ -330,7 +330,7 @@ public class ConnectorDownloadManager {
         String groupId = null;
         String artifactId = null;
         String version = null;
-        if (driverPath == null || driverPath.isEmpty()) {
+        if (driverPath.isBlank()) {
             ConnectorHolder connectorHolder;
             connectorHolder = ConnectorHolder.getInstance();
             Connector connector = connectorHolder.getConnector(connectorName);
@@ -400,7 +400,7 @@ public class ConnectorDownloadManager {
                 String encodedQuery = null;
                 try {
                     encodedQuery = URLEncoder.encode(query, "UTF-8");
-                    String apiUrl = "https://search.maven.org/solrsearch/select?q=" + encodedQuery + "&rows=1&wt=json";
+                    String apiUrl = Constant.MAVEN_CENTRAL_URL + encodedQuery + Constant.MAVEN_SEARCH_PARAM;
                     // Execute HTTP GET request
                     URL url = new URL(apiUrl);
                     HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -438,7 +438,7 @@ public class ConnectorDownloadManager {
                 }
             }
         }
-        if (groupId != null || !groupId.equals("unknown")) {
+        if (groupId != null && !groupId.equals("unknown")) {
             response.setFound(true);
             response.setArtifactId(artifactId);
             response.setVersion(version);
