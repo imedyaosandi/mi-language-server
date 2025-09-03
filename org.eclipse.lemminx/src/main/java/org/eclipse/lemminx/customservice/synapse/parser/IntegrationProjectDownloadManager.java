@@ -37,6 +37,8 @@ import java.util.zip.ZipFile;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
+import static org.eclipse.lemminx.customservice.synapse.utils.Constant.DOT;
+import static org.eclipse.lemminx.customservice.synapse.utils.Constant.HYPHEN;
 import static org.eclipse.lemminx.customservice.synapse.utils.Utils.copyFile;
 import static org.eclipse.lemminx.customservice.synapse.utils.Utils.getDependencyFromLocalRepo;
 
@@ -90,7 +92,7 @@ public class IntegrationProjectDownloadManager {
                 fetchDependencyRecursively(dependency, downloadDirectory, fetchedDependencies);
             } catch (Exception e) {
                 String failedDependency =
-                        dependency.getGroupId() + Constant.HYPHEN + dependency.getArtifact() + Constant.HYPHEN + dependency.getVersion();
+                        dependency.getGroupId() + HYPHEN + dependency.getArtifact() + HYPHEN + dependency.getVersion();
                 LOGGER.log(Level.WARNING,
                         "Error occurred while downloading dependency " + failedDependency + ": " + e.getMessage());
                 failedDependencies.add(failedDependency);
@@ -150,8 +152,9 @@ public class IntegrationProjectDownloadManager {
      */
     private static File fetchDependencyFile(DependencyDetails dependency, File downloadDirectory) {
 
-        File dependencyFile =
-                new File(downloadDirectory, dependency.getArtifact() + "-" + dependency.getVersion() + ".car");
+        File dependencyFile = new File(downloadDirectory,
+                dependency.getGroupId() + HYPHEN + dependency.getArtifact() + HYPHEN + dependency.getVersion() + DOT +
+                        dependency.getType());
         if (dependencyFile.exists() && dependencyFile.isFile()) {
             LOGGER.log(Level.INFO, "Dependency already downloaded: " + dependencyFile.getName());
         } else {
@@ -160,10 +163,12 @@ public class IntegrationProjectDownloadManager {
             if (existingArtifact != null) {
                 LOGGER.log(Level.INFO, "Copying dependency from local repository: " + dependencyFile.getName());
                 try {
-                    copyFile(existingArtifact.getPath(), downloadDirectory.getPath());
+                    String newFileName = dependency.getGroupId() + HYPHEN + dependency.getArtifact() + HYPHEN +
+                            dependency.getVersion() + DOT + dependency.getType();
+                    copyFile(existingArtifact.getPath(), downloadDirectory.getPath(), newFileName);
                 } catch (IOException e) {
                     String failedDependency =
-                            dependency.getGroupId() + "-" + dependency.getArtifact() + "-" + dependency.getVersion();
+                            dependency.getGroupId() + HYPHEN + dependency.getArtifact() + HYPHEN + dependency.getVersion();
                     LOGGER.log(Level.WARNING,
                             "Error occurred while downloading dependency " + failedDependency + ": " + e.getMessage());
                 }

@@ -131,6 +131,7 @@ public abstract class AbstractResourceFinder {
 
         Map<String, List<String>> duplicates = new HashMap<>();
         Map<String, ResourceResponse> tempResourcesMap = new HashMap<>();
+        // Used to identify any duplicate artifacts across projects
         Map<String, List<String>> artifactNameToProjects = new HashMap<>();
 
         // Collect main project artifacts
