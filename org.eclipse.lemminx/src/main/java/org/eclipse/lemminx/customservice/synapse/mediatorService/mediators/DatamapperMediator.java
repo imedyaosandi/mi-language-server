@@ -26,7 +26,7 @@ import java.util.regex.Pattern;
 
 public class DatamapperMediator {
     private static final String NAME_REGEX = "(gov|resources):/?datamapper/(.*)";
-    private static final String CONFIG_REGEX = "((gov|resources):/?datamapper/([^/]+))/.*\\.dmc";
+    private static final String CONFIG_REGEX = "((gov|resources):/?datamapper/([^/]+))(?:/.*)?\\.dmc";
 
     public static Either<Map<String, Object>, Map<Range, Map<String, Object>>> processData430(Map<String, Object> data,
                                                                                               Datamapper datamapper,
