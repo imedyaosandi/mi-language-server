@@ -190,6 +190,8 @@ public class Constant {
     public static final String INBOUND_ENDPOINT = "inboundEndpoint";
     public static final String LOCAL_ENTRY = "localEntry";
     public static final String MESSAGE_PROCESSOR = "messageProcessor";
+    public static final String ENDPOINT_TEMPLATE = "endpointTemplate";
+    public static final String SEQUENCE_TEMPLATE = "sequenceTemplate";
     public static final String PROXY = "proxy";
     public static final String REGISTRY = "registry";
     public static final String URI = "uri";
@@ -346,6 +348,7 @@ public class Constant {
     public static final String NTLM_VERSION = "ntlmVersion";
     public static final String DATA = "data";
     public static final String DATA_SOURCE = "datasource";
+    public static final String DATA_SOURCE_TYPE = "dataSource";
     public static final String JNDI_CONFIG = "jndiConfig";
     public static final String DEFINITION = "definition";
     public static final String USE_DATA_SOURCE_FACTORY = "useDataSourceFactory";
@@ -400,6 +403,7 @@ public class Constant {
     public static final String SYNAPSE_CONFIG_PATH = "/src/main/synapse-config";
     public static final String SEQUENCES = "sequences";
     public static final String PROXY_SERVICES = "proxy-services";
+
     public static final String INBOUND_ENDPOINTS = "inbound-endpoints";
     public static final String ENDPOINTS = "endpoints";
     public static final String DOT_PROJECT = ".project";
@@ -433,6 +437,7 @@ public class Constant {
     public static final String ENABLED_ERROR_CODES = "enabledErrorCodes";
     public static final String DISABLED_ERROR_CODES = "disabledErrorCodes";
     public static final String PROXY_SERVICE = "ProxyService";
+    public static final String PROXY_SERVICE_TYPE = "proxyService";
     public static final String ASYNC = "async";
     public static final String ROW_NAME = "rowName";
     public static final String DEFAULT_NAMESPACE = "defaultNamespace";
@@ -527,6 +532,7 @@ public class Constant {
     public static final String ZIP_EXTENSION = ".zip";
     public static final String CAR_EXTENSION = ".car";
     public static final String JAR_EXTENSION = ".jar";
+    public static final String XML_EXTENSION = ".xml";
     public static final String ZIP_EXTENSION_NO_DOT = "zip";
     public static final String JAR_EXTENSION_NO_DOT = "jar";
     public static final String CONNECTORS = "connectors";

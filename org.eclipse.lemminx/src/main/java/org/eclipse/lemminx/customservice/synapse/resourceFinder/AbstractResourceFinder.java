@@ -52,9 +52,9 @@ import static java.nio.file.Files.list;
 public abstract class AbstractResourceFinder {
 
     private static final Logger LOGGER = Logger.getLogger(AbstractResourceFinder.class.getName());
-    private static final String ARTIFACTS = "ARTIFACTS";
-    private static final String REGISTRY = "REGISTRY";
-    private static final String LOCAL_ENTRY = "LOCAL_ENTRY";
+    protected static final String ARTIFACTS = "ARTIFACTS";
+    protected static final String REGISTRY = "REGISTRY";
+    protected static final String LOCAL_ENTRY = "LOCAL_ENTRY";
     protected static final List<String> resourceFromRegistryOnly = List.of("dataMapper", "js", "json", "smooksConfig",
             "wsdl", "ws_policy", "xsd", "xsl", "xslt", "yaml", "registry", "unitTestRegistry", "schema", "swagger");
 
@@ -86,25 +86,6 @@ public abstract class AbstractResourceFinder {
         typeToXmlTagMap.put("wsdl", "wsdl:definitions");
     }
 
-    public void initDependentResourcesMap() {
-        dependentResourcesMap.put("endpoint", new ResourceResponse());
-        dependentResourcesMap.put("sequence", new ResourceResponse());
-        dependentResourcesMap.put("messageStore", new ResourceResponse());
-        dependentResourcesMap.put("messageProcessor", new ResourceResponse());
-        dependentResourcesMap.put("endpointTemplate", new ResourceResponse());
-        dependentResourcesMap.put("sequenceTemplate", new ResourceResponse());
-        dependentResourcesMap.put("localEntry", new ResourceResponse());
-        dependentResourcesMap.put("inbound-endpoint", new ResourceResponse());
-        dependentResourcesMap.put("dataService", new ResourceResponse());
-        dependentResourcesMap.put("dataSource", new ResourceResponse());
-        dependentResourcesMap.put("ws_policy", new ResourceResponse());
-        dependentResourcesMap.put("smooksConfig", new ResourceResponse());
-        dependentResourcesMap.put("xsl", new ResourceResponse());
-        dependentResourcesMap.put("xslt", new ResourceResponse());
-        dependentResourcesMap.put("xsd", new ResourceResponse());
-        dependentResourcesMap.put("wsdl", new ResourceResponse());
-    }
-
     /**
      * Loads dependent resources for the given project path.
      * <p>
@@ -118,7 +99,7 @@ public abstract class AbstractResourceFinder {
      */
     public String loadDependentResources(String projectPath) {
 
-        initDependentResourcesMap();
+        dependentResourcesMap = new HashMap<>();
         String projectName = new File(projectPath).getName();
         Path projectDependencyDir = findProjectDependencyDir(projectPath);
         if (projectDependencyDir == null) {
@@ -133,20 +114,16 @@ public abstract class AbstractResourceFinder {
         }
 
         Map<String, List<String>> duplicates = new HashMap<>();
-        Map<String, ResourceResponse> tempResourcesMap = new HashMap<>();
         // Used to identify any duplicate artifacts across projects
         Map<String, List<String>> artifactNameToProjects = new HashMap<>();
 
         // Collect main project artifacts
-        for (String type : dependentResourcesMap.keySet()) {
-            ResourceResponse mainResources = findResources(projectPath, type);
+        Map<String, ResourceResponse> allResources = findAllResources(projectPath);
+        for (String type : allResources.keySet()) {
+            ResourceResponse mainResources = allResources.get(type);
             addArtifactNamesToProjects(mainResources, projectName, artifactNameToProjects);
         }
 
-        // Initialize temp resources map
-        for (String type : dependentResourcesMap.keySet()) {
-            tempResourcesMap.put(type, new ResourceResponse());
-        }
         try (var dependentProjects = list(extractedDir)) {
             // Iterate over each dependent project directory
             for (Path dependentProject : dependentProjects.toArray(Path[]::new)) {
@@ -155,10 +132,9 @@ public abstract class AbstractResourceFinder {
                     OverviewPageDetailsResponse pomDetailsResponse = new OverviewPageDetailsResponse();
                     PomParser.getPomDetails(dependentProject.toString(), pomDetailsResponse);
                     // For each resource type, find resources from the dependent project
-                    for (String type : dependentResourcesMap.keySet()) {
-                        RequestedResource requestedResource = new RequestedResource(type, true);
-                        ResourceResponse resources =
-                                findResources(dependentProject.toString(), List.of(requestedResource));
+                    Map<String, ResourceResponse> dependentProjectAllResources = findAllResources(dependentProject.toString());
+                    for (String type : dependentProjectAllResources.keySet()) {
+                        ResourceResponse resources = dependentProjectAllResources.get(type);
                         // Append project details(group ID and artifact ID) to synapse artifacts
                         resources.getResources().forEach(resource -> {
                             resource.setName(getFullyQualifiedName(pomDetailsResponse, resource));
@@ -168,7 +144,8 @@ public abstract class AbstractResourceFinder {
                             ((RegistryResource) resource)
                                     .setRegistryKey(getFullyQualifiedNameForRegistryArtifact(pomDetailsResponse, (RegistryResource) resource));
                         });
-                        mergeResourceResponses(tempResourcesMap.get(type), resources);
+                        dependentResourcesMap.computeIfAbsent(type, k -> new ResourceResponse());
+                        mergeResourceResponses(dependentResourcesMap.get(type), resources);
                         addArtifactNamesToProjects(resources, projectNameDep, artifactNameToProjects);
                     }
                 }
@@ -176,10 +153,7 @@ public abstract class AbstractResourceFinder {
         } catch (IOException e) {
             return "Error loading dependent resources: " + e.getMessage();
         }
-        // After all findResources, update the main map
-        for (String type : dependentResourcesMap.keySet()) {
-            mergeResourceResponses(dependentResourcesMap.get(type), tempResourcesMap.get(type));
-        }
+
         // Find duplicated artifacts
         for (Map.Entry<String, List<String>> entry : artifactNameToProjects.entrySet()) {
             if (entry.getValue().size() > 1) {
@@ -352,7 +326,62 @@ public abstract class AbstractResourceFinder {
         return findResources(projectPath, List.of(requestedResource));
     }
 
+    /**
+     * Scans the given registry directory and populates the provided map with all registry resources found.
+     *
+     * @param registryPath the path to the registry directory to scan
+     * @param allResources the map to populate with found resources, keyed by resource type
+     */
+    protected void findAllRegistryResources(Path registryPath, Map<String, ResourceResponse> allResources) {
+
+        File folder = registryPath.toFile();
+        if (!folder.exists()) {
+            return;
+        }
+        traverseRegistryFolder(folder, allResources);
+    }
+
+    /**
+     * Recursively traverses the given registry folder and populates the provided map with all registry resources found.
+     *
+     * @param folder       the root folder to traverse for registry resources
+     * @param allResources the map to populate with found resources, keyed by resource type
+     */
+    private void traverseRegistryFolder(File folder, Map<String, ResourceResponse> allResources) {
+
+        File[] files = folder.listFiles();
+        if (files == null) {
+            return;
+        }
+
+        for (File file : files) {
+            if (file.isDirectory()) {
+                traverseRegistryFolder(file, allResources); // recursive
+            } else {
+                Resource resource = createRegistryResourceFromFile(file);
+                if (resource != null) {
+                    String type = resource.getType();
+                    ResourceResponse response = allResources.computeIfAbsent(type, k -> new ResourceResponse());
+                    List<Resource> resources = response.getRegistryResources();
+                    if (resources == null) {
+                        resources = new ArrayList<>();
+                        response.setRegistryResources(resources);
+                    }
+                    resources.add(resource);
+                }
+            }
+        }
+    }
+
     protected abstract ResourceResponse findResources(String projectPath, List<RequestedResource> type);
+
+    /**
+     * Finds and returns all resources for the given project path, grouped by resource type.
+     *
+     * @param projectPath the absolute path to the project
+     * @return a map where the key is the resource type and the value is the corresponding ResourceResponse
+     */
+    public abstract Map<String, ResourceResponse> findAllResources(String projectPath);
 
     protected List<Resource> findResourceInArtifacts(Path artifactsPath, List<RequestedResource> types) {
 
@@ -392,6 +421,75 @@ public abstract class AbstractResourceFinder {
             }
         }
         return resources;
+    }
+
+    /**
+     * Scans the specified local entry directory and adds all valid local entry resources
+     * to the provided map of all resources, grouped by their type.
+     *
+     * @param localEntryPath the path to the local entry directory
+     * @param allResources   the map to populate with found resources, keyed by resource type
+     */
+    protected void findAllLocalEntryResources(Path localEntryPath, Map<String, ResourceResponse> allResources) {
+        File folder = localEntryPath.toFile();
+        if (!folder.exists()) {
+            return;
+        }
+
+        File[] files = folder.listFiles();
+        if (files == null) {
+            return;
+        }
+
+        for (File file : files) {
+            if (!file.isFile()) {
+                continue;
+            }
+            Resource resource = createLocalEntryResource(file);
+            if (resource != null) {
+                String type = resource.getType();
+                ResourceResponse response = allResources.computeIfAbsent(type, k -> new ResourceResponse());
+                List<Resource> resources = response.getResources();
+                if (resources == null) {
+                    resources = new ArrayList<>();
+                    response.setResources(resources);
+                }
+                resources.add(resource);
+            }
+        }
+    }
+
+    /**
+     * Creates a Resource object representing a local entry from the given file.
+     *
+     * This method parses the provided file as an XML document, retrieves the root element,
+     * and attempts to identify the artifact type from the first child element. If successful,
+     * it creates and returns a Resource for the local entry; otherwise, it returns null.
+     *
+     * @param file the file representing the local entry
+     * @return a Resource object for the local entry, or null if the file is invalid or cannot be parsed
+     */
+    private Resource createLocalEntryResource(File file) {
+
+        try {
+            DOMDocument document = Utils.getDOMDocument(file);
+            DOMElement rootElement = document.getDocumentElement();
+            if (rootElement == null) {
+                return null;
+            }
+
+            // Get first artifact element and identify type
+            DOMElement artifactElt = Utils.getFirstElement(rootElement);
+            if (artifactElt == null) {
+                return null;
+            }
+
+            String artifactType = artifactElt.getNodeName();
+            return createResource(file, artifactType, Constant.LOCAL_ENTRY);
+        } catch (IOException e) {
+            LOGGER.warning("Error reading local entry file: " + file.getName());
+        }
+        return null;
     }
 
     protected abstract String getArtifactFolder(String type);
@@ -542,7 +640,7 @@ public abstract class AbstractResourceFinder {
         return null;
     }
 
-    private List<Resource> createResources(List<File> files, String type, String from) {
+    protected List<Resource> createResources(List<File> files, String type, String from) {
 
         List<Resource> resources = new ArrayList<>();
         for (File file : files) {
@@ -587,7 +685,7 @@ public abstract class AbstractResourceFinder {
 
         Resource resource = new RegistryResource();
         resource.setName(file.getName());
-        resource.setType(type.toUpperCase());
+        resource.setType(type);
         resource.setFrom(registry);
         ((RegistryResource) resource).setRegistryPath(file.getAbsolutePath());
         if (Utils.isFileInRegistry(file)) {
@@ -634,7 +732,7 @@ public abstract class AbstractResourceFinder {
         String name = getArtifactName(rootElement);
         if (name != null) {
             artifact.setName(name);
-            artifact.setType(Utils.addUnderscoreBetweenWords(type).toUpperCase());
+            artifact.setType(type);
             artifact.setFrom(ARTIFACTS);
             ((ArtifactResource) artifact).setLocalEntry(isLocalEntry);
             ((ArtifactResource) artifact).setArtifactPath(file.getName());
@@ -653,7 +751,7 @@ public abstract class AbstractResourceFinder {
         }
         registry.setName(name);
         type = type.replace(":", "");
-        registry.setType(Utils.addUnderscoreBetweenWords(type).toUpperCase());
+        registry.setType(type);
         registry.setFrom(REGISTRY);
         ((RegistryResource) registry).setRegistryPath(file.getAbsolutePath());
         if (Utils.isFileInRegistry(file)) {
@@ -703,5 +801,91 @@ public abstract class AbstractResourceFinder {
             }
             return null;
         }
+    }
+
+    /**
+     * Creates a Resource object from the given registry file.
+     * <p>
+     * If the file is an XML file, it parses the file, detects the resource type from the root element,
+     * and creates a registry resource. If the file is not XML, it uses the file extension as the type
+     * and creates a non-XML registry resource.
+     *
+     * @param file the registry file to process
+     * @return a Resource representing the registry file, or null if the file is invalid or cannot be parsed
+     */
+    protected Resource createRegistryResourceFromFile(File file) {
+        try {
+            String fileName = file.getName();
+            String detectedType = null;
+
+            if (fileName.endsWith(Constant.XML_EXTENSION)) {
+                // Handle XML files: parse and detect type
+                DOMDocument document = Utils.getDOMDocument(file);
+                DOMElement rootElement = document.getDocumentElement();
+                if (rootElement == null) {
+                    return null;
+                }
+
+                // Look for a matching type in typeToXmlTagMap
+                for (Map.Entry<String, String> entry : typeToXmlTagMap.entrySet()) {
+                    if (entry.getValue().equals(rootElement.getNodeName())) {
+                        if (entry.getValue().equals(Constant.TEMPLATE)) {
+                            detectedType = getTemplateType(rootElement);
+                        } else {
+                            detectedType = entry.getKey();
+                        }
+                    }
+                }
+
+                if (detectedType == null) {
+                    // fallback: use root element name as type
+                    detectedType = rootElement.getNodeName();
+                }
+
+                return createRegistryResource(file, rootElement, detectedType);
+
+            } else {
+                // Handle non-XML files: use file extension as type
+                int dotIndex = fileName.lastIndexOf('.');
+                if (dotIndex > 0 && dotIndex < fileName.length() - 1) {
+                    detectedType = fileName.substring(dotIndex + 1); // extension only
+                } else {
+                    detectedType = "unknown"; // fallback if no extension
+                }
+                return createNonXmlResource(file, detectedType, REGISTRY);
+            }
+
+        } catch (IOException e) {
+            LOGGER.warning("Error reading registry file: " + file.getName());
+        }
+        return null;
+    }
+
+
+    /**
+     * Identifies the type of template defined by the given root XML element.
+     * <p>
+     * Determines the template type based on the first child element:
+     * <ul>
+     *   <li>Returns "sequenceTemplate" if the first child is a sequence</li>
+     *   <li>Returns "endpointTemplate" if the first child is an endpoint</li>
+     *   <li>Returns "template" in all other cases</li>
+     * </ul>
+     *
+     * @param rootElement the root DOM element representing the template
+     * @return a string indicating the template type ("sequenceTemplate", "endpointTemplate", or "template")
+     */
+    private String getTemplateType(DOMElement rootElement) {
+        if (rootElement != null && Constant.TEMPLATE.equals(rootElement.getNodeName())) {
+            if (rootElement.getChildren() != null && !rootElement.getChildren().isEmpty()) {
+                String firstChildNodeName = rootElement.getChildren().get(0).getNodeName();
+                if (Constant.SEQUENCE.equals(firstChildNodeName)) {
+                    return Constant.SEQUENCE_TEMPLATE;
+                } else if (Constant.ENDPOINT.equals(firstChildNodeName)) {
+                    return Constant.ENDPOINT_TEMPLATE;
+                }
+            }
+        }
+        return Constant.TEMPLATE;
     }
 }

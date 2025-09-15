@@ -20,7 +20,9 @@ import org.eclipse.lemminx.customservice.synapse.resourceFinder.pojo.Resource;
 import org.eclipse.lemminx.customservice.synapse.resourceFinder.pojo.ResourceResponse;
 import org.eclipse.lemminx.customservice.synapse.utils.Constant;
 
+import java.io.File;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
@@ -64,6 +66,63 @@ public class NewProjectResourceFinder extends AbstractResourceFinder {
             filterResourcesForUnitTestRegistry(resourcesInRegistry);
         }
         response.setRegistryResources(resourcesInRegistry);
+    }
+
+    /**
+     * Finds and collects all resources in the given project path, including artifacts,
+     * local entries, and registry resources. The resources are grouped by their type.
+     *
+     * @param projectPath the root directory of the project
+     * @return a map where the key is the resource type and the value is the corresponding ResourceResponse
+     */
+    @Override
+    public Map<String, ResourceResponse> findAllResources(String projectPath) {
+        Map<String, ResourceResponse> allResources = new HashMap<>();
+
+        // 1. Artifacts root
+        findArtifactResources(projectPath, allResources);
+
+        // 2. Local entries
+        Path localEntryPath = Path.of(projectPath, Constant.SRC, Constant.MAIN, Constant.WSO2MI, Constant.LOCAL_ENTRIES);
+        findAllLocalEntryResources(localEntryPath, allResources);
+
+        // 3. Registry resources
+        Path registryPath = Path.of(projectPath, Constant.SRC, Constant.MAIN, Constant.WSO2MI, Constant.RESOURCES);
+        findAllRegistryResources(registryPath, allResources);
+
+        return allResources;
+    }
+
+    /**
+     * Scans the artifacts directory for known artifact types and updates allResources.
+     */
+    private void findArtifactResources(String projectPath, Map<String, ResourceResponse> allResources) {
+        Path artifactsPath = Path.of(projectPath, Constant.SRC, Constant.MAIN, Constant.WSO2MI, Constant.ARTIFACTS);
+
+        String[] artifactTypes = {
+                Constant.API, Constant.ENDPOINT, Constant.SEQUENCE,
+                Constant.MESSAGE_STORE, Constant.MESSAGE_PROCESSOR,
+                Constant.ENDPOINT_TEMPLATE, Constant.SEQUENCE_TEMPLATE,
+                Constant.TASK, Constant.LOCAL_ENTRY,
+                Constant.INBOUND_DASH_ENDPOINT, Constant.DATA_SERVICE,
+                Constant.DATA_SOURCE_TYPE, Constant.PROXY_SERVICE_TYPE
+        };
+
+        for (String type : artifactTypes) {
+            String folderName = getArtifactFolder(type);
+            if (folderName != null) {
+                Path folderPath = artifactsPath.resolve(folderName);
+                File folder = folderPath.toFile();
+                File[] listOfFiles = folder.listFiles();
+                if (listOfFiles != null) {
+                    List<Resource> resources = createResources(List.of(listOfFiles), type, ARTIFACTS);
+                    if (!resources.isEmpty()) {
+                        ResourceResponse response = allResources.computeIfAbsent(type, k -> new ResourceResponse());
+                        response.setResources(resources);
+                    }
+                }
+            }
+        }
     }
 
     private void filterResourcesForUnitTestRegistry(List<Resource> resourcesInRegistry) {
