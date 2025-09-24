@@ -160,7 +160,7 @@ public class DynamicFieldsHandler {
 
         if (url != null && username != null && password != null) {
             try {
-                if (driverPath.isEmpty()) {
+                if (StringUtils.isBlank(driverPath)) {
                     connection = DBConnectionTester.getConnection(url, username, password, className);
                 } else {
                     connection = DBConnectionTester.getConnection(url, username, password, className, driverPath);

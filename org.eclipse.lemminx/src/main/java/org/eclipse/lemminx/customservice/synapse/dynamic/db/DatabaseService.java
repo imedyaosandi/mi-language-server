@@ -34,7 +34,8 @@ public class DatabaseService {
     private static final String FIELD_TYPE_ATTRIBUTE = "attribute";
     private static final String DYN_PARAM_PREFIX = "dyn_param_";
     private static final String IS_NULLABLE_COLUMN = "IS_NULLABLE";
-    private static final String NULLABLE_NO = "NO";
+    private static final String IS_AUTO_INCREMENT_COLUMN = "IS_AUTOINCREMENT";
+    private static final String COLUMN_RESPONSE_NO = "NO";
     private static final String BOOLEAN_TRUE = "true";
     private static final String BOOLEAN_FALSE = "false";
     private static final String COLUMN_NAME_COLUMN = "COLUMN_NAME";
@@ -74,10 +75,11 @@ public class DatabaseService {
                     value.setName(DYN_PARAM_PREFIX + fieldName + "_" + dataType + "_" + xmlSafeColumnName);
                     value.setDisplayName(columnName);
                     value.setInputType(inputType);
-
+                    LOGGER.log(Level.INFO,"column details: ", columns);
                     // Determine if the column is required
-                    boolean isRequiredBasedOnDb = columns.getString(IS_NULLABLE_COLUMN).equals(NULLABLE_NO);
-                    value.setRequired(markNull && isRequiredBasedOnDb ? BOOLEAN_TRUE : BOOLEAN_FALSE);
+                    boolean isRequiredBasedOnDb = columns.getString(IS_NULLABLE_COLUMN).equals(COLUMN_RESPONSE_NO);
+                    boolean isAutoIncrement = columns.getString(IS_AUTO_INCREMENT_COLUMN).equals(COLUMN_RESPONSE_NO);
+                    value.setRequired(markNull && isRequiredBasedOnDb && isAutoIncrement ? BOOLEAN_TRUE : BOOLEAN_FALSE);
 
                     value.setHelpTip("Column type: " + dataType);
                     value.setPlaceholder("Enter " + columnName);

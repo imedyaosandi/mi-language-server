@@ -127,7 +127,7 @@ public class QueryGenerator {
         DBConnectionTester dbConnectionTester = new DBConnectionTester();
         Connection connection = null;
         try {
-            if (requestParams.driverPath.isBlank()) {
+            if (StringUtils.isBlank(requestParams.driverPath)) {
                 connection = dbConnectionTester.getConnection(requestParams.url, requestParams.username,
                         requestParams.password, requestParams.className);
             } else {

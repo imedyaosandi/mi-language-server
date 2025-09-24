@@ -330,7 +330,7 @@ public class ConnectorDownloadManager {
         String groupId = null;
         String artifactId = null;
         String version = null;
-        if (driverPath.isBlank()) {
+        if (StringUtils.isBlank(driverPath)) {
             ConnectorHolder connectorHolder;
             connectorHolder = ConnectorHolder.getInstance();
             Connector connector = connectorHolder.getConnector(connectorName);
