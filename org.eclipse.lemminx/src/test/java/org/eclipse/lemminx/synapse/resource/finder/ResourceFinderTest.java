@@ -28,9 +28,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ResourceFinderTest {
@@ -44,6 +46,103 @@ public class ResourceFinderTest {
         this.resourceFinder = ResourceFinderFactory.getResourceFinder(false);
         String path = ResourceFinderTest.class.getResource(PROJECT_PATH).getPath();
         projectPath = new File(path).getAbsolutePath();
+    }
+
+    @Test
+    public void testAllResources() {
+
+        Map<String, ResourceResponse> allResources = resourceFinder.findAllResources(projectPath);
+
+        ResourceResponse apiResources = allResources.get("api");
+        assertEquals(1, apiResources.getResources().size());
+        assertNull(apiResources.getRegistryResources());
+        assertEquals("testApi", apiResources.getResources().get(0).getName());
+
+        ResourceResponse sequenceResources = allResources.get("sequence");
+        assertEquals(1, sequenceResources.getResources().size());
+        assertEquals(2, sequenceResources.getRegistryResources().size());
+        assertEqualResourceNames(new String[] {"testSequence1"}, sequenceResources.getResources());
+        assertEqualResourceNames(new String[] {"testSequence1", "testSequence2"}, sequenceResources.getRegistryResources());
+
+        ResourceResponse endpointResources = allResources.get("endpoint");
+        assertEquals(2, endpointResources.getResources().size());
+        assertEquals(4, endpointResources.getRegistryResources().size());
+        assertEqualResourceNames(new String[] {"testEndpoint1", "testEndpoint2"}, endpointResources.getResources());
+        assertEqualResourceNames(new String[] {"testEndpoint1", "testEndpoint2", "testEndpoint3", "testEndpoint4"}, endpointResources.getRegistryResources());
+
+        ResourceResponse proxyResources = allResources.get("proxyService");
+        assertEquals(1, proxyResources.getResources().size());
+        assertEquals("testProxy1", proxyResources.getResources().get(0).getName());
+
+        ResourceResponse messageProcessorResources = allResources.get("messageProcessor");
+        assertEquals(1, messageProcessorResources.getResources().size());
+        assertEquals("testMessageProcessor", messageProcessorResources.getResources().get(0).getName());
+
+        ResourceResponse messageStoreResources = allResources.get("messageStore");
+        assertEquals(1, messageStoreResources.getResources().size());
+        assertEquals("testMessageStore", messageStoreResources.getResources().get(0).getName());
+
+        ResourceResponse sequenceTemplateResources = allResources.get("sequenceTemplate");
+        assertEquals(1, sequenceTemplateResources.getResources().size());
+        assertEquals(2, sequenceTemplateResources.getRegistryResources().size());
+        assertEquals("testSequenceTemplate", sequenceTemplateResources.getResources().get(0).getName());
+        assertEqualResourceNames(new String[] {"testSequenceTemplate1", "testSequenceTemplate2"},
+                sequenceTemplateResources.getRegistryResources());
+
+        ResourceResponse endpointTemplateResources = allResources.get("endpointTemplate");
+        assertEquals(1, endpointTemplateResources.getResources().size());
+        assertEquals(2, endpointTemplateResources.getRegistryResources().size());
+        assertEquals("testEndpointTemplate", endpointTemplateResources.getResources().get(0).getName());
+        assertEqualResourceNames(new String[] {"testEndpointTemplate1", "testEndpointTemplate2"},
+                endpointTemplateResources.getRegistryResources());
+
+        ResourceResponse taskResources = allResources.get("task");
+        assertEquals(1, taskResources.getResources().size());
+        assertEquals("testTask", taskResources.getResources().get(0).getName());
+
+        ResourceResponse localEntryResources = allResources.get("localEntry");
+        assertEquals(2, localEntryResources.getResources().size());
+        assertEqualResourceNames(new String[] {"testLocalEntry", "HttpsCon"},
+                localEntryResources.getResources());
+
+        ResourceResponse jsResources = allResources.get("js");
+        assertEquals(2, jsResources.getRegistryResources().size());
+        assertEqualResourceNames(new String[] {"test1.js", "test.js"}, jsResources.getRegistryResources());
+
+        ResourceResponse jsonResources = allResources.get("json");
+        assertEquals(4, jsonResources.getRegistryResources().size());
+        assertEqualResourceNames(new String[] {"test1.json", "swagger.json", "test.json", "swagger1.json"},
+                jsonResources.getRegistryResources());
+
+        ResourceResponse smooksConfigResources = allResources.get("smooksConfig");
+        assertEquals(2, smooksConfigResources.getRegistryResources().size());
+        assertEqualResourceNames(new String[] {"test_smooks_config1.xml", "test_smooks_config.xml"},
+                smooksConfigResources.getRegistryResources());
+
+        ResourceResponse wsdlResources = allResources.get("wsdl");
+        assertEquals(2, wsdlResources.getRegistryResources().size());
+        assertEqualResourceNames(new String[] {"wsdlfile.wsdl", "wsdlfile1.wsdl"},
+                wsdlResources.getRegistryResources());
+
+        ResourceResponse wsPolicyResources = allResources.get("ws_policy");
+        assertEquals(2, wsPolicyResources.getRegistryResources().size());
+        assertEqualResourceNames(new String[] {"ws_policy1.xml", "ws_policy.xml"}, wsPolicyResources.getRegistryResources());
+
+        ResourceResponse xsdResources = allResources.get("xsd");
+        assertEquals(2, xsdResources.getRegistryResources().size());
+        assertEqualResourceNames(new String[] {"sample1.xsd", "sample.xsd"}, xsdResources.getRegistryResources());
+
+        ResourceResponse xslResources = allResources.get("xsl");
+        assertEquals(2, xslResources.getRegistryResources().size());
+        assertEqualResourceNames(new String[] {"sample1.xsl", "sample.xsl"}, xslResources.getRegistryResources());
+
+        ResourceResponse xsltResources = allResources.get("xslt");
+        assertEquals(2, xsltResources.getRegistryResources().size());
+        assertEqualResourceNames(new String[] {"sample1.xslt", "sample.xslt"}, xsltResources.getRegistryResources());
+
+        ResourceResponse yamlResources = allResources.get("yaml");
+        assertEquals(4, yamlResources.getRegistryResources().size());
+        assertEqualResourceNames(new String[] {"swagger.yaml", "sample.yaml", "sample1.yaml", "swagger1.yaml"}, yamlResources.getRegistryResources());
     }
 
     @Test
@@ -62,11 +161,12 @@ public class ResourceFinderTest {
                 "sequence"));
 
         assertEquals(1, sequenceResources.getResources().size());
-        assertEquals(1, sequenceResources.getRegistryResources().size());
+        assertEquals(2, sequenceResources.getRegistryResources().size());
 
         String[] expectedSequenceNames = {"testSequence1"};
+        String[] expectedRegistrySequenceNames = {"testSequence1", "testSequence2"};
         assertEqualResourceNames(expectedSequenceNames, sequenceResources.getResources());
-        assertEqualResourceNames(expectedSequenceNames, sequenceResources.getRegistryResources());
+        assertEqualResourceNames(expectedRegistrySequenceNames, sequenceResources.getRegistryResources());
     }
 
     @Test
@@ -76,11 +176,13 @@ public class ResourceFinderTest {
                 "endpoint"));
 
         assertEquals(2, endpointResources.getResources().size());
-        assertEquals(2, endpointResources.getRegistryResources().size());
+        assertEquals(4, endpointResources.getRegistryResources().size());
 
         String[] expectedEndpointNames = {"testEndpoint1", "testEndpoint2"};
+        String[] expectedRegistryEndpointNames = {"testEndpoint1", "testEndpoint2", "testEndpoint3",
+                "testEndpoint4"};
         assertEqualResourceNames(expectedEndpointNames, endpointResources.getResources());
-        assertEqualResourceNames(expectedEndpointNames, endpointResources.getRegistryResources());
+        assertEqualResourceNames(expectedRegistryEndpointNames, endpointResources.getRegistryResources());
     }
 
     @Test
@@ -172,8 +274,9 @@ public class ResourceFinderTest {
 
         ResourceResponse jsResources = resourceFinder.getAvailableResources(projectPath, Either.forLeft("js"));
 
-        assertEquals(1, jsResources.getRegistryResources().size());
-        assertEquals("test.js", jsResources.getRegistryResources().get(0).getName());
+        assertEquals(2, jsResources.getRegistryResources().size());
+        String[] expectedJsNames = {"test1.js", "test.js"};
+        assertEqualResourceNames(expectedJsNames, jsResources.getRegistryResources());
     }
 
     @Test
@@ -181,9 +284,9 @@ public class ResourceFinderTest {
 
         ResourceResponse jsonResources = resourceFinder.getAvailableResources(projectPath, Either.forLeft("json"));
 
-        assertEquals(2, jsonResources.getRegistryResources().size());
+        assertEquals(4, jsonResources.getRegistryResources().size());
 
-        String[] expectedJsonNames = {"swagger.json", "test.json"};
+        String[] expectedJsonNames = {"swagger.json", "test.json", "swagger1.json", "test1.json"};
         assertEqualResourceNames(expectedJsonNames, jsonResources.getRegistryResources());
     }
 
@@ -193,8 +296,9 @@ public class ResourceFinderTest {
         ResourceResponse smooksConfigResources = resourceFinder.getAvailableResources(projectPath, Either.forLeft(
                 "smooksConfig"));
 
-        assertEquals(1, smooksConfigResources.getRegistryResources().size());
-        assertEquals("test_smooks_config.xml", smooksConfigResources.getRegistryResources().get(0).getName());
+        assertEquals(2, smooksConfigResources.getRegistryResources().size());
+        String[] expectedSmooksConfigNames = {"test_smooks_config1.xml", "test_smooks_config.xml"};
+        assertEqualResourceNames(expectedSmooksConfigNames, smooksConfigResources.getRegistryResources());
     }
 
     @Test
@@ -202,8 +306,9 @@ public class ResourceFinderTest {
 
         ResourceResponse wsdlResources = resourceFinder.getAvailableResources(projectPath, Either.forLeft("wsdl"));
 
-        assertEquals(1, wsdlResources.getRegistryResources().size());
-        assertEquals("wsdlfile.wsdl", wsdlResources.getRegistryResources().get(0).getName());
+        assertEquals(2, wsdlResources.getRegistryResources().size());
+        String[] expectedWsdlNames = {"wsdlfile.wsdl", "wsdlfile1.wsdl"};
+        assertEqualResourceNames(expectedWsdlNames, wsdlResources.getRegistryResources());
     }
 
     @Test
@@ -212,8 +317,9 @@ public class ResourceFinderTest {
         ResourceResponse wsPolicyResources = resourceFinder.getAvailableResources(projectPath, Either.forLeft(
                 "ws_policy"));
 
-        assertEquals(1, wsPolicyResources.getRegistryResources().size());
-        assertEquals("ws_policy.xml", wsPolicyResources.getRegistryResources().get(0).getName());
+        assertEquals(2, wsPolicyResources.getRegistryResources().size());
+        String[] expectedPolicyNames = {"ws_policy.xml", "ws_policy1.xml"};
+        assertEqualResourceNames(expectedPolicyNames, wsPolicyResources.getRegistryResources());
     }
 
     @Test
@@ -221,8 +327,9 @@ public class ResourceFinderTest {
 
         ResourceResponse xsdResources = resourceFinder.getAvailableResources(projectPath, Either.forLeft("xsd"));
 
-        assertEquals(1, xsdResources.getRegistryResources().size());
-        assertEquals("sample.xsd", xsdResources.getRegistryResources().get(0).getName());
+        assertEquals(2, xsdResources.getRegistryResources().size());
+        String[] expectedXsdNames = {"sample.xsd", "sample1.xsd"};
+        assertEqualResourceNames(expectedXsdNames, xsdResources.getRegistryResources());
     }
 
     @Test
@@ -230,8 +337,9 @@ public class ResourceFinderTest {
 
         ResourceResponse xslResources = resourceFinder.getAvailableResources(projectPath, Either.forLeft("xsl"));
 
-        assertEquals(1, xslResources.getRegistryResources().size());
-        assertEquals("sample.xsl", xslResources.getRegistryResources().get(0).getName());
+        assertEquals(2, xslResources.getRegistryResources().size());
+        String[] expectedXslNames = {"sample.xsl", "sample1.xsl"};
+        assertEqualResourceNames(expectedXslNames, xslResources.getRegistryResources());
     }
 
     @Test
@@ -239,8 +347,9 @@ public class ResourceFinderTest {
 
         ResourceResponse xsltResources = resourceFinder.getAvailableResources(projectPath, Either.forLeft("xslt"));
 
-        assertEquals(1, xsltResources.getRegistryResources().size());
-        assertEquals("sample.xslt", xsltResources.getRegistryResources().get(0).getName());
+        assertEquals(2, xsltResources.getRegistryResources().size());
+        String[] expectedXsltNames = {"sample.xslt", "sample1.xslt"};
+        assertEqualResourceNames(expectedXsltNames, xsltResources.getRegistryResources());
     }
 
     @Test
@@ -248,9 +357,8 @@ public class ResourceFinderTest {
 
         ResourceResponse yamlResources = resourceFinder.getAvailableResources(projectPath, Either.forLeft("yaml"));
 
-        assertEquals(2, yamlResources.getRegistryResources().size());
-
-        String[] expectedYamlNames = {"swagger.yaml", "sample.yaml"};
+        assertEquals(4, yamlResources.getRegistryResources().size());
+        String[] expectedYamlNames = {"swagger.yaml", "sample.yaml", "sample1.yaml", "swagger1.yaml"};
         assertEqualResourceNames(expectedYamlNames, yamlResources.getRegistryResources());
     }
 
@@ -260,7 +368,7 @@ public class ResourceFinderTest {
         ResourceResponse registryResources = resourceFinder.getAvailableResources(projectPath, Either.forLeft(
                 "registry"));
 
-        assertEquals(16, registryResources.getRegistryResources().size());
+        assertEquals(34, registryResources.getRegistryResources().size());
         assertTrue(registryResources.getResources().isEmpty());
     }
 
@@ -270,9 +378,9 @@ public class ResourceFinderTest {
         ResourceResponse swaggerResources = resourceFinder.getAvailableResources(projectPath, Either.forLeft("swagger"
         ));
 
-        assertEquals(2, swaggerResources.getRegistryResources().size());
+        assertEquals(4, swaggerResources.getRegistryResources().size());
 
-        String[] expectedSwaggerNames = {"swagger.yaml", "swagger.json"};
+        String[] expectedSwaggerNames = {"swagger.yaml", "swagger.json", "swagger1.yaml", "swagger1.json"};
         assertEqualResourceNames(expectedSwaggerNames, swaggerResources.getRegistryResources());
     }
 
@@ -281,9 +389,10 @@ public class ResourceFinderTest {
 
         ResourceResponse schemaResources = resourceFinder.getAvailableResources(projectPath, Either.forLeft("schema"));
 
-        assertEquals(3, schemaResources.getRegistryResources().size());
+        assertEquals(6, schemaResources.getRegistryResources().size());
 
-        String[] expectedSchemaNames = {"swagger.json", "test.json", "sample.xsd"};
+        String[] expectedSchemaNames = {"swagger.json", "test.json", "sample.xsd", "sample1.xsd", "swagger1.json",
+                "test1.json"};
         assertEqualResourceNames(expectedSchemaNames, schemaResources.getRegistryResources());
     }
 
@@ -297,11 +406,13 @@ public class ResourceFinderTest {
                 Either.forRight(List.of(requestedResource1, requestedResource2)));
 
         assertEquals(3, multipleResources.getResources().size());
-        assertEquals(3, multipleResources.getRegistryResources().size());
+        assertEquals(6, multipleResources.getRegistryResources().size());
 
         String[] expectedResourceNames = {"testSequence1", "testEndpoint1", "testEndpoint2"};
+        String[] expectedRegistryResourceNames = {"testSequence1", "testSequence2", "testEndpoint1",
+                "testEndpoint2", "testEndpoint3", "testEndpoint4"};
         assertEqualResourceNames(expectedResourceNames, multipleResources.getResources());
-        assertEqualResourceNames(expectedResourceNames, multipleResources.getRegistryResources());
+        assertEqualResourceNames(expectedRegistryResourceNames, multipleResources.getRegistryResources());
     }
 
     @Test
@@ -330,9 +441,10 @@ public class ResourceFinderTest {
                 Either.forRight(List.of(requestedResource1, requestedResource2)));
 
         assertTrue(multipleResources.getResources().isEmpty());
-        assertEquals(3, multipleResources.getRegistryResources().size());
+        assertEquals(6, multipleResources.getRegistryResources().size());
 
-        String[] expectedResourceNames = {"swagger.json", "test.json", "test.js"};
+        String[] expectedResourceNames = {"swagger.json", "test.json", "test.js", "swagger1.json", "test1.js",
+                "test1.json"};
         assertEqualResourceNames(expectedResourceNames, multipleResources.getRegistryResources());
     }
 
