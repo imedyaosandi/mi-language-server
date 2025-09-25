@@ -89,6 +89,13 @@ public class PomParser {
                 propertiesElement = document.createElement(Constants.PROPERTIES);
             }
             for (PropertyDetails property : request.properties) {
+                if (property != null && Constants.DEPLOYMENT_TYPE.equals(property.getName())) {
+                    if (Boolean.parseBoolean(property.getValue())) {
+                        property.setValue(Constants.VERSIONED_DEPLOYMENT);
+                    } else {
+                        continue;
+                    }
+                }
                 if (property != null && property.getRange() != null) {
                     updateResponse.add(new TextEdit(property.getRange(),
                             elementToString(createPropertyElement(document, property))));

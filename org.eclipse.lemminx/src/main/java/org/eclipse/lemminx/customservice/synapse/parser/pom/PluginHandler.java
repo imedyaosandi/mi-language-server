@@ -266,6 +266,14 @@ public class PluginHandler extends DefaultHandler {
                 break;
             case Constants.FAT_CAR_ENABLE: pomDetailsResponse.getBuildDetails().setEnableFatCar(
                         new Node(value, Either.forLeft(range)));
+                break;
+            case Constants.DEPLOYMENT_TYPE:
+                // Include the start and end tags of the property
+                Range updatedRange = getRange(valueStartLine, valueStartColumn - (qName.length() + 2),
+                        valueEndLine, valueEndColumn + (qName.length() + 3));
+                pomDetailsResponse.getBuildDetails().setDeploymentType(
+                    new Node(String.valueOf(Constants.VERSIONED_DEPLOYMENT.equals(value)), Either.forLeft(updatedRange)));
+                break;
             case Constants.CIPHER_TOOL_ENABLE:
                 pomDetailsResponse.getBuildDetails().getDockerDetails().setCipherToolEnable(
                         new Node(value, Either.forLeft(range)));
