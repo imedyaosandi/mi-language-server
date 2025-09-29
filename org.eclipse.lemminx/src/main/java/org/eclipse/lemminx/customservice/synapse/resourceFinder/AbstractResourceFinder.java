@@ -14,6 +14,9 @@
 
 package org.eclipse.lemminx.customservice.synapse.resourceFinder;
 
+import org.eclipse.lemminx.customservice.synapse.dependency.tree.ArtifactType;
+import org.eclipse.lemminx.customservice.synapse.parser.OverviewPageDetailsResponse;
+import org.eclipse.lemminx.customservice.synapse.parser.pom.PomParser;
 import org.eclipse.lemminx.customservice.synapse.resourceFinder.pojo.ArtifactResource;
 import org.eclipse.lemminx.customservice.synapse.resourceFinder.pojo.RegistryResource;
 import org.eclipse.lemminx.customservice.synapse.resourceFinder.pojo.RequestedResource;
@@ -149,11 +152,22 @@ public abstract class AbstractResourceFinder {
             for (Path dependentProject : dependentProjects.toArray(Path[]::new)) {
                 if (isDirectory(dependentProject)) {
                     String projectNameDep = dependentProject.getFileName().toString();
+                    OverviewPageDetailsResponse pomDetailsResponse = new OverviewPageDetailsResponse();
+                    PomParser.getPomDetails(dependentProject.toString(), pomDetailsResponse);
                     // For each resource type, find resources from the dependent project
                     for (String type : dependentResourcesMap.keySet()) {
                         RequestedResource requestedResource = new RequestedResource(type, true);
                         ResourceResponse resources =
                                 findResources(dependentProject.toString(), List.of(requestedResource));
+                        // Append project details(group ID and artifact ID) to synapse artifacts
+                        resources.getResources().forEach(resource -> {
+                            resource.setName(getFullyQualifiedName(pomDetailsResponse, resource));
+                        });
+                        // Append project details(group ID and artifact ID) to registry artifacts
+                        resources.getRegistryResources().forEach(resource -> {
+                            ((RegistryResource) resource)
+                                    .setRegistryKey(getFullyQualifiedNameForRegistryArtifact(pomDetailsResponse, (RegistryResource) resource));
+                        });
                         mergeResourceResponses(tempResourcesMap.get(type), resources);
                         addArtifactNamesToProjects(resources, projectNameDep, artifactNameToProjects);
                     }
@@ -184,6 +198,37 @@ public abstract class AbstractResourceFinder {
     public Map<String, ResourceResponse> getDependentResourcesMap() {
 
         return dependentResourcesMap;
+    }
+
+    private String getFullyQualifiedName(OverviewPageDetailsResponse pomDetailsResponse, Resource resource) {
+
+        // For DataServices and proxy services, the reference name format will be updated as follows
+        // groupID__artifactID/ServiceName
+        if (ArtifactType.DATA_SERVICE.name().equals(resource.getType()) || ArtifactType.PROXY_SERVICE.name().equals(resource.getType())) {
+            return pomDetailsResponse.getBuildDetails().getAdvanceDetails().getProjectGroupId().getValue()
+                    + "__" + pomDetailsResponse.getBuildDetails().getAdvanceDetails().getProjectArtifactId().getValue()
+                    + "/" + resource.getName();
+        }
+        // For other artifact types, the name format will be updated as follows
+        // groupID__artifactID__ArtifactName
+        return pomDetailsResponse.getBuildDetails().getAdvanceDetails().getProjectGroupId().getValue()
+                    + "__" + pomDetailsResponse.getBuildDetails().getAdvanceDetails().getProjectArtifactId().getValue()
+                    + "__" + resource.getName();
+    }
+
+    private String getFullyQualifiedNameForRegistryArtifact(OverviewPageDetailsResponse pomDetailsResponse, RegistryResource resource) {
+
+        // For registry resource artifact types, the name format will be updated as follows
+        // resources:path/groupID__artifactID__ArtifactName
+        int lastSlash = resource.getRegistryKey().lastIndexOf('/');
+        String dirPath = resource.getRegistryKey().substring(0, lastSlash + 1);
+        String resourceName = resource.getRegistryKey().substring(lastSlash + 1);
+
+        String fullyQualifiedName = pomDetailsResponse.getBuildDetails().getAdvanceDetails().getProjectGroupId().getValue()
+                + "__" + pomDetailsResponse.getBuildDetails().getAdvanceDetails().getProjectArtifactId().getValue()
+                + "__" + resourceName;
+
+        return dirPath + fullyQualifiedName;
     }
 
     /**
