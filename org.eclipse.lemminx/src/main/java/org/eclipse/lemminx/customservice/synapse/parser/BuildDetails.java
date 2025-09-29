@@ -17,6 +17,7 @@ public class BuildDetails {
 
     private AdvanceDetails advanceDetails;
     private Node enableFatCar;
+    private Node deploymentType;
     private DockerDetails dockerDetails;
 
     BuildDetails() {
@@ -40,5 +41,15 @@ public class BuildDetails {
 
     public DockerDetails getDockerDetails() {
         return this.dockerDetails;
+    }
+
+    public Node getDeploymentType() {
+
+        return deploymentType;
+    }
+
+    public void setDeploymentType(Node deploymentType) {
+
+        this.deploymentType = deploymentType;
     }
 }
