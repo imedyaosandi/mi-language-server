@@ -78,7 +78,7 @@ public class ConnectorDownloadManager {
                 } else {
                     LOGGER.log(Level.INFO, "Downloading dependency: " + connector.getName());
                     Utils.downloadConnector(dependency.getGroupId(), dependency.getArtifact(),
-                            dependency.getVersion(), downloadDirectory, Constant.ZIP_EXTENSION_NO_DOT);
+                            dependency.getVersion(), downloadDirectory, Constant.ZIP_EXTENSION_NO_DOT, projectPath);
                 }
             } catch (Exception e) {
                 String failedDependency = dependency.getGroupId() + "-" + dependency.getArtifact() + "-" + dependency.getVersion();
@@ -209,7 +209,7 @@ public class ConnectorDownloadManager {
              }
  
              // Download the driver from Maven repository
-             Utils.downloadConnector(groupId, artifactId, version, driversDirectory, Constant.JAR_EXTENSION_NO_DOT);
+             Utils.downloadConnector(groupId, artifactId, version, driversDirectory, Constant.JAR_EXTENSION_NO_DOT, projectPath);
 
             File expectedDriverFile = new File(driversDirectory, artifactId + "-" + version + Constant.JAR_EXTENSION);
 

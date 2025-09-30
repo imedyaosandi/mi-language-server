@@ -633,6 +633,19 @@ public class Constant {
     public static final String COMBO = "combo";
     public static final String COMBO_VALUES = "comboValues";
     public static final String TRUE = "true";
+    public static final String USE_LOCAL_MAVEN = "MI.useLocalMaven";
+    public static final String OUTPUT_DIRECTORY = "outputDirectory";
+    public static final String OS_TYPE = "os.name";
+    public static final String WINDOWS_PREFIX = "win";
+    public static final String M2_HOME = "M2_HOME";
+    public static final String MAVEN_HOME = "maven.home";
+    public static final String VSCODE_FOLDER = ".vscode";
+    public static final String SETTINGS_CONFIG = "settings.json";
+    public static final Map<String, String> MI_SUPPORTED_VERSION_MAP = new HashMap<>() {{
+        put("4.3.0", "4.3.0");
+        put("4.4.0", "4.4.0");
+        put("4.5.0", "4.4.0");
+    }};
 
     static {
         // AI Connection to Display Name bi-Mapping

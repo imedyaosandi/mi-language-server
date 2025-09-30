@@ -47,7 +47,7 @@ public class ConnectorDownloadManagerTest {
     void downloadConnectorsWithValidDependencies() {
         String path = ConnectorDownloadManagerTest.class.getResource("/synapse/pom.parser/test_pom_parser").getPath();
         String projectPath = new File(path).getAbsolutePath();
-        utilsMock.when(() -> Utils.downloadConnector(any(), any(), any(), any(), any())).thenAnswer(invocationOnMock -> { return null; });
+        utilsMock.when(() -> Utils.downloadConnector(any(), any(), any(), any(), any(), any())).thenAnswer(invocationOnMock -> { return null; });
         OverviewPageDetailsResponse pomDetailsResponse = new OverviewPageDetailsResponse();
         getPomDetails(projectPath, pomDetailsResponse);
         List<DependencyDetails>
@@ -62,7 +62,7 @@ public class ConnectorDownloadManagerTest {
     void downloadConnectorsWithInvalidDependencies() {
         String path = ConnectorDownloadManagerTest.class.getResource("/synapse/pom.parser/test_pom_parser").getPath();
         String projectPath = new File(path).getAbsolutePath();
-        utilsMock.when(() -> Utils.downloadConnector(any(), any(), any(), any(), any())).thenThrow(new IOException());
+        utilsMock.when(() -> Utils.downloadConnector(any(), any(), any(), any(), any(), any())).thenThrow(new IOException());
         OverviewPageDetailsResponse pomDetailsResponse = new OverviewPageDetailsResponse();
         getPomDetails(projectPath, pomDetailsResponse);
         List<DependencyDetails>

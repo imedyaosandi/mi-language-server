@@ -60,7 +60,8 @@ public class DatamapperHandler extends NonXMLRegistryHandler {
     }
 
     private static boolean isDMUtilsFile(String path) {
+        String normalized = path.replace("\\", "/");
         String regex = ".*/datamapper/.*?/dm-utils\\.ts$";
-        return path.matches(regex);
+        return normalized.matches(regex);
     }
 }

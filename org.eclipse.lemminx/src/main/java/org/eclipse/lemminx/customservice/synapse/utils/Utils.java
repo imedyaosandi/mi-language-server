@@ -26,6 +26,11 @@ import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSyntaxException;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.maven.shared.invoker.DefaultInvocationRequest;
+import org.apache.maven.shared.invoker.DefaultInvoker;
+import org.apache.maven.shared.invoker.Invoker;
+import org.apache.maven.shared.invoker.InvocationResult;
+import org.apache.maven.shared.invoker.InvocationRequest;
 import org.eclipse.lemminx.commons.TextDocument;
 import org.eclipse.lemminx.customservice.synapse.connectors.ConnectorHolder;
 import org.eclipse.lemminx.customservice.synapse.connectors.entity.Connector;
@@ -81,6 +86,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.logging.Level;
@@ -913,14 +919,14 @@ public class Utils {
                                 Integer.parseInt(Constant.MI_430_VERSION.replace(".", ""))) {
                             return Constant.MI_430_VERSION;
                         }
-                        return version;
+                        return Constant.MI_SUPPORTED_VERSION_MAP.get(version);
                     }
                 }
             }
         } catch (Exception e) {
             logger.log(Level.SEVERE, "Error occurred while extracting server runtime version.", e);
         }
-        return defaultVersion;
+        return Constant.MI_SUPPORTED_VERSION_MAP.get(defaultVersion);
     }
 
     public static Map<String, Mustache> getTemplateMap(String resourceFolderName) {
@@ -1374,11 +1380,43 @@ public class Utils {
     }
 
     public static void downloadConnector(String groupId, String artifactId, String version, File targetDirectory,
-            String fileType) throws IOException {
+            String fileType, String projectPath) throws IOException {
 
         if (!targetDirectory.exists()) {
             targetDirectory.mkdirs();
         }
+
+        boolean useLocalMaven = false;
+        if (StringUtils.isNotBlank(projectPath)) {
+            useLocalMaven = useLocalMaven(projectPath);
+        }
+
+        if (useLocalMaven) {
+            try {
+                InvocationRequest request = new DefaultInvocationRequest();
+                request.setPomFile(new File(Constant.POM));
+                request.setGoals(Collections.singletonList("dependency:copy"));
+                Properties properties = new Properties();
+                properties.setProperty(Constant.ARTIFACT,
+                        String.format("%s:%s:%s:%s", groupId, artifactId, version, Constant.ZIP_EXTENSION_NO_DOT));
+                properties.setProperty(Constant.OUTPUT_DIRECTORY, targetDirectory.getAbsolutePath());
+                request.setProperties(properties);
+
+                Invoker invoker = new DefaultInvoker();
+                invoker.setMavenHome(new File(getMavenHome()));
+
+                InvocationResult result = invoker.execute(request);
+                if (result.getExitCode() != 0) {
+                    throw new IllegalStateException("Maven build failed. Exit code: " + result.getExitCode(), result.getExecutionException());
+                }
+                logger.log(Level.INFO, "Dependency downloaded via local maven: " + artifactId);
+                return;
+            } catch (Exception e) {
+                logger.log(Level.SEVERE, "Error occurred while downloading dependency from local maven: "
+                        + artifactId + "-" + version + ". Error: " + e.getMessage());
+            }
+        }
+
         // Default to zip if fileType is not specified
         String effectiveFileType = StringUtils.isEmpty(fileType) ? Constant.ZIP_EXTENSION_NO_DOT : fileType;
         String urlString = String.format("https://maven.wso2.org/nexus/content/groups/public/%s/%s/%s/%s-%s.%s",
@@ -1506,5 +1544,62 @@ public class Utils {
             logger.log(Level.SEVERE, "An unexpected error occurred during PDF to image conversion.", e);
             return Collections.emptyList();
         }
+    }
+
+    public static String getMavenHome() {
+
+        // Try to find Maven home using system property
+        String mavenHome = System.getProperty(Constant.MAVEN_HOME);
+        if (mavenHome != null) {
+            return mavenHome;
+        }
+
+        // Fallback: Try to find Maven home using environment variable or default paths
+        mavenHome = System.getenv(Constant.M2_HOME);
+        if (mavenHome != null) {
+            return mavenHome;
+        }
+
+        // Fallback: Try to find Maven home using command line
+        ProcessBuilder processBuilder = new ProcessBuilder();
+        if (System.getProperty(Constant.OS_TYPE).toLowerCase().contains(Constant.WINDOWS_PREFIX)) {
+            processBuilder.command("cmd.exe", "/c", "mvn -v");
+        } else {
+            processBuilder.command("sh", "-c", "mvn -v");
+        }
+        try {
+            Process process = processBuilder.start();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.contains("Maven home: ")) {
+                    return line.split("Maven home: ")[1].trim();
+                }
+            }
+        } catch (IOException e) {
+            logger.log(Level.WARNING, "Could not determine Maven home.", e);
+        }
+
+        logger.log(Level.WARNING, "Could not determine Maven home.");
+        return mavenHome;
+    }
+
+    public static boolean useLocalMaven(String projectPath) {
+        try {
+            File settingsFile = Paths.get(projectPath, Constant.VSCODE_FOLDER, Constant.SETTINGS_CONFIG).toFile();
+            if (!settingsFile.exists()) {
+                return false;
+            }
+
+            String content = new String(Files.readAllBytes(settingsFile.toPath()), StandardCharsets.UTF_8);
+            JsonObject jsonObject = new JsonParser().parse(content).getAsJsonObject();
+
+            if (jsonObject.has(Constant.USE_LOCAL_MAVEN)) {
+                return jsonObject.get(Constant.USE_LOCAL_MAVEN).getAsBoolean();
+            }
+        } catch (Exception e) {
+            logger.log(Level.WARNING, "Error occurred while reading project settings file", e);
+        }
+        return false;
     }
 }
