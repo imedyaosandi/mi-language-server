@@ -29,6 +29,15 @@ import java.util.Map;
 
 public class NewProjectResourceFinder extends AbstractResourceFinder {
 
+    private static final String[] ARTIFACT_TYPES = {
+            Constant.API, Constant.ENDPOINT, Constant.SEQUENCE,
+            Constant.MESSAGE_STORE, Constant.MESSAGE_PROCESSOR,
+            Constant.ENDPOINT_TEMPLATE, Constant.SEQUENCE_TEMPLATE,
+            Constant.TASK, Constant.LOCAL_ENTRY,
+            Constant.INBOUND_DASH_ENDPOINT, Constant.DATA_SERVICE,
+            Constant.DATA_SOURCE_TYPE, Constant.PROXY_SERVICE_TYPE
+    };
+
     @Override
     protected ResourceResponse findResources(String projectPath, List<RequestedResource> types) {
 
@@ -99,16 +108,7 @@ public class NewProjectResourceFinder extends AbstractResourceFinder {
     private void findArtifactResources(String projectPath, Map<String, ResourceResponse> allResources) {
         Path artifactsPath = Path.of(projectPath, Constant.SRC, Constant.MAIN, Constant.WSO2MI, Constant.ARTIFACTS);
 
-        String[] artifactTypes = {
-                Constant.API, Constant.ENDPOINT, Constant.SEQUENCE,
-                Constant.MESSAGE_STORE, Constant.MESSAGE_PROCESSOR,
-                Constant.ENDPOINT_TEMPLATE, Constant.SEQUENCE_TEMPLATE,
-                Constant.TASK, Constant.LOCAL_ENTRY,
-                Constant.INBOUND_DASH_ENDPOINT, Constant.DATA_SERVICE,
-                Constant.DATA_SOURCE_TYPE, Constant.PROXY_SERVICE_TYPE
-        };
-
-        for (String type : artifactTypes) {
+        for (String type : ARTIFACT_TYPES) {
             String folderName = getArtifactFolder(type);
             if (folderName != null) {
                 Path folderPath = artifactsPath.resolve(folderName);
