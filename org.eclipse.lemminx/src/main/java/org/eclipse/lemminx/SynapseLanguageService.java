@@ -121,6 +121,7 @@ import org.eclipse.lemminx.customservice.synapse.syntaxTree.factory.mediators.Me
 import org.eclipse.lemminx.customservice.synapse.syntaxTree.pojo.ArtifactTypeResponse;
 import org.eclipse.lemminx.customservice.synapse.utils.Constant;
 import org.eclipse.lemminx.customservice.synapse.mediator.tryout.pojo.MediatorTryoutInfo;
+import org.eclipse.lemminx.customservice.synapse.utils.ExtendedLocation;
 import org.eclipse.lemminx.customservice.synapse.utils.Utils;
 import org.eclipse.lemminx.customservice.synapse.idp.PdfToImagesRequest;
 import org.eclipse.lemminx.dom.DOMDocument;
@@ -130,7 +131,6 @@ import org.eclipse.lemminx.settings.SharedSettings;
 import org.eclipse.lemminx.uriresolver.URIResolverExtensionManager;
 import org.eclipse.lsp4j.DefinitionParams;
 import org.eclipse.lsp4j.Diagnostic;
-import org.eclipse.lsp4j.Location;
 import org.eclipse.lsp4j.PublishDiagnosticsParams;
 import org.eclipse.lsp4j.SignatureHelp;
 import org.eclipse.lsp4j.TextDocumentIdentifier;
@@ -309,13 +309,15 @@ public class SynapseLanguageService implements ISynapseLanguageService {
     }
 
     @Override
-    public CompletableFuture<Location> definition(
+    public CompletableFuture<ExtendedLocation> definition(
             DefinitionParams params) {
 
+        log.log(Level.INFO, "Processing definition request for document: " + params.getTextDocument().getUri());
         return xmlTextDocumentService.computeDOMAsync(params.getTextDocument(), (xmlDocument, cancelChecker) -> {
-            Location location = SynapseDefinitionProvider.definition(xmlDocument, params.getPosition(), projectUri,
-                    cancelChecker);
-            return location;
+            Map<String, ResourceResponse> dependentResourcesMap = resourceFinder.getDependentResourcesMap();
+
+            return SynapseDefinitionProvider.definition(xmlDocument, params.getPosition(), projectUri,
+                    cancelChecker, dependentResourcesMap);
         });
     }
 

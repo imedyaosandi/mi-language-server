@@ -15,14 +15,15 @@
 package org.eclipse.lemminx.customservice.synapse.definition;
 
 import org.eclipse.lemminx.commons.BadLocationException;
+import org.eclipse.lemminx.customservice.synapse.resourceFinder.pojo.ResourceResponse;
 import org.eclipse.lemminx.customservice.synapse.utils.ConfigFinder;
+import org.eclipse.lemminx.customservice.synapse.utils.ExtendedLocation;
 import org.eclipse.lemminx.customservice.synapse.utils.LegacyConfigFinder;
 import org.eclipse.lemminx.customservice.synapse.utils.Constant;
 import org.eclipse.lemminx.customservice.synapse.utils.Utils;
 import org.eclipse.lemminx.dom.DOMAttr;
 import org.eclipse.lemminx.dom.DOMDocument;
 import org.eclipse.lemminx.dom.DOMNode;
-import org.eclipse.lsp4j.Location;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.jsonrpc.CancelChecker;
@@ -30,8 +31,11 @@ import org.eclipse.lsp4j.jsonrpc.CancelChecker;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import static org.eclipse.lemminx.customservice.synapse.utils.Utils.hasResourceForKey;
 
 public class SynapseDefinitionProvider {
 
@@ -41,16 +45,26 @@ public class SynapseDefinitionProvider {
             , "onAccept", "onReject", "obligation", "advice", "onError");
     private static List<String> endpointAttributes = List.of("endpointKey", "targetEndpoint", "endpoint");
 
-    public static Location definition(DOMDocument document, Position position, String projectPath,
-                                      CancelChecker cancelChecker) {
+    private static final Map<String, String> TYPE_TO_SINGULAR =
+            Map.of("endpoints", "endpoint",
+                    "sequences", "sequence",
+                    "templates", "template",
+                    "message-stores", "messageStore",
+                    "data-services", "dataService",
+                    "local-entries", "localEntry");
+
+    public static ExtendedLocation definition(DOMDocument document, Position position, String projectPath,
+                                              CancelChecker cancelChecker, Map<String, ResourceResponse> dependentResources) {
 
         cancelChecker.checkCanceled();
+        ExtendedLocation result = new ExtendedLocation(null, null, false);
+
         int offset;
         try {
             offset = document.offsetAt(position);
         } catch (BadLocationException e) {
             LOGGER.log(Level.WARNING, "Error while reading file content", e);
-            return null;
+            return result;
         }
 
         KeyAndTypeHolder keyAndType = getKeyAndType(document, offset);
@@ -70,13 +84,17 @@ public class SynapseDefinitionProvider {
                 LOGGER.log(Level.WARNING, "Error while reading file content", e);
             }
             if (path == null) {
-                return null;
+                String singularType = TYPE_TO_SINGULAR.get(keyAndType.getType());
+                ResourceResponse resourceResponse = dependentResources.get(singularType);
+                if (hasResourceForKey(keyAndType.getKey(), resourceResponse)) {
+                    return new ExtendedLocation(null, null, true);
+                }
+            } else {
+                Range range = getDefinitionRange(path);
+                return new ExtendedLocation(path, range, false);
             }
-            Range range = getDefinitionRange(path);
-            Location location = new Location(path, range);
-            return location;
         }
-        return null;
+        return result;
     }
 
     private static KeyAndTypeHolder getKeyAndType(DOMDocument document, int offset) {

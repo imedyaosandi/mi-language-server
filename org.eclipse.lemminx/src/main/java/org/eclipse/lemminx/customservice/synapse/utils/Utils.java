@@ -33,6 +33,8 @@ import org.eclipse.lemminx.customservice.synapse.connectors.entity.ConnectorActi
 import org.eclipse.lemminx.customservice.synapse.directoryTree.legacyBuilder.utils.ProjectType;
 import org.eclipse.lemminx.customservice.synapse.parser.OverviewPageDetailsResponse;
 import org.eclipse.lemminx.customservice.synapse.parser.pom.PomParser;
+import org.eclipse.lemminx.customservice.synapse.resourceFinder.pojo.Resource;
+import org.eclipse.lemminx.customservice.synapse.resourceFinder.pojo.ResourceResponse;
 import org.eclipse.lemminx.dom.DOMAttr;
 import org.eclipse.lemminx.dom.DOMDocument;
 import org.eclipse.lemminx.dom.DOMElement;
@@ -512,6 +514,37 @@ public class Utils {
             result.append(currentChar);
         }
         return result.toString();
+    }
+
+    /**
+     * Checks if a resource with the specified key exists in the given ResourceResponse.
+     *
+     * @param resourceKey the key of the resource to check
+     * @param resourceResponse the ResourceResponse containing resources and registry resources
+     * @return true if a resource with the given key exists, false otherwise
+     */
+    public static boolean hasResourceForKey(String resourceKey, ResourceResponse resourceResponse) {
+
+        if (resourceResponse == null || resourceKey == null) {
+            return false;
+        }
+        // Check in resources list
+        if (resourceResponse.getResources() != null) {
+            for (Resource resource : resourceResponse.getResources()) {
+                if (resource != null && resourceKey.equals(resource.getName())) {
+                    return true;
+                }
+            }
+        }
+        // Check in registry resources list
+        if (resourceResponse.getRegistryResources() != null) {
+            for (Resource resource : resourceResponse.getRegistryResources()) {
+                if (resource != null && resourceKey.equals(resource.getName())) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     public static String getHash(String input) {

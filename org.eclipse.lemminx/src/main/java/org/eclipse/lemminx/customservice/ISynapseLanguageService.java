@@ -75,6 +75,7 @@ import org.eclipse.lemminx.customservice.synapse.schemagen.util.SchemaGenRespons
 import org.eclipse.lemminx.customservice.synapse.syntaxTree.SyntaxTreeResponse;
 import org.eclipse.lemminx.customservice.synapse.mediator.tryout.pojo.MediatorTryoutInfo;
 import org.eclipse.lemminx.customservice.synapse.syntaxTree.pojo.ArtifactTypeResponse;
+import org.eclipse.lemminx.customservice.synapse.utils.ExtendedLocation;
 import org.eclipse.lemminx.services.extensions.completion.ICompletionResponse;
 import org.eclipse.lsp4j.DefinitionParams;
 import org.eclipse.lsp4j.Location;
@@ -111,7 +112,7 @@ public interface ISynapseLanguageService {
     CompletableFuture<DirectoryMapResponse> directoryTree(WorkspaceFolder param);
 
     @JsonRequest
-    CompletableFuture<Location> definition(DefinitionParams params);
+    CompletableFuture<ExtendedLocation> definition(DefinitionParams params);
 
     @JsonRequest
     CompletableFuture<ResourceResponse> availableResources(ResourceParam param);
