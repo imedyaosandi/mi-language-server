@@ -62,12 +62,12 @@ public class CacheMediator {
         }
 
         Object headersToExcludeInHash = data.get("headersToExcludeInHash");
-        if (headersToExcludeInHash instanceof List<?> && !((List<?>) headersToExcludeInHash).isEmpty()) {
+        if (headersToExcludeInHash instanceof String) {
             data.put("hasHeadersToExcludeInHash", true);
         }
 
         Object headersToIncludeInHash = data.get("headersToIncludeInHash");
-        if (headersToIncludeInHash instanceof List<?> && !((List<?>) headersToIncludeInHash).isEmpty()) {
+        if (headersToIncludeInHash instanceof String){
             data.put("hasHeadersToIncludeInHash", true);
         }
 
