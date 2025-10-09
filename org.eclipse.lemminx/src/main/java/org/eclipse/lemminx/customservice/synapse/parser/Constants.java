@@ -64,7 +64,6 @@ public class Constants {
     public static final String CAR = "car";
     public static final String DOCKER_FILE_BASE_IMAGE = "dockerfile.base.image";
     public static final String FAT_CAR_ENABLE = "fat.car.enable";
-    public static final String DEPLOYMENT_TYPE = "deploymentType";
     public static final String VERSIONED_DEPLOYMENT = "versionedDeployment";
     public static final String CIPHER_TOOL_ENABLE = "ciphertool.enable";
     public static final String KEY_STORE_ALIAS = "keystore.alias";

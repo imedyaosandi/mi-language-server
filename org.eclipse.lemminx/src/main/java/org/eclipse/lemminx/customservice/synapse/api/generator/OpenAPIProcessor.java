@@ -41,6 +41,9 @@ import io.swagger.v3.oas.models.servers.Server;
 import io.swagger.v3.parser.OpenAPIV3Parser;
 import io.swagger.v3.parser.core.models.SwaggerParseResult;
 import org.apache.commons.lang3.StringUtils;
+import org.eclipse.lemminx.customservice.synapse.parser.AdvanceDetails;
+import org.eclipse.lemminx.customservice.synapse.parser.OverviewPageDetailsResponse;
+import org.eclipse.lemminx.customservice.synapse.parser.pom.PomParser;
 import org.eclipse.lemminx.customservice.synapse.syntaxTree.pojo.api.API;
 import org.eclipse.lemminx.customservice.synapse.syntaxTree.pojo.api.ApiVersionType;
 
@@ -81,7 +84,7 @@ public class OpenAPIProcessor {
 
         final OpenAPI openAPI = new OpenAPI();
         addInfoSection(openAPI);
-        addServersSection(openAPI, port);
+        addServersSection(openAPI, port, StringUtils.EMPTY);
         // Re-use the previous implementation to get resource details of the API.
         final Map<String, Object> dataMap = GenericApiObjectDefinition.getPathMap(api);
         Paths paths = new Paths();
@@ -192,7 +195,7 @@ public class OpenAPIProcessor {
                 }
             }
         } else {
-            addServersSection(openAPI, SwaggerConstants.DEFAULT_HTTP_PORT);
+            addServersSection(openAPI, SwaggerConstants.DEFAULT_HTTP_PORT, StringUtils.EMPTY);
         }
     }
 
@@ -201,7 +204,17 @@ public class OpenAPIProcessor {
      *
      * @param openAPI OpenApi object.
      */
-    private void addServersSection(OpenAPI openAPI, int port) {
+    private void addServersSection(OpenAPI openAPI, int port, String projectPath) {
+
+        String serverVersionPath = api.getContext().startsWith("/") ? "" : "/";
+        if (StringUtils.isNotBlank(projectPath)){
+            OverviewPageDetailsResponse overviewPageDetailsResponse = new OverviewPageDetailsResponse();
+            PomParser.getPomDetails(projectPath, overviewPageDetailsResponse);
+            AdvanceDetails advanceDetails = overviewPageDetailsResponse.getBuildDetails().getAdvanceDetails();
+            serverVersionPath = "/" + advanceDetails.getProjectGroupId().getValue() + "/" + advanceDetails.getProjectArtifactId().getValue()
+                    + "/" + overviewPageDetailsResponse.getPrimaryDetails().getProjectVersion().getValue()
+                    + (api.getContext().startsWith("/") ? "" : "/");
+        }
 
         String basePath;
         if (ApiVersionType.url.equals(api.getVersionType())) {
@@ -219,9 +232,9 @@ public class OpenAPIProcessor {
             httpsHost = SwaggerConstants.DEFAULT_HOST + ":" + (SwaggerConstants.DEFAULT_HTTPS_PORT + offset);
         }
         Server httpServer = new Server();
-        httpServer.setUrl(SwaggerConstants.PROTOCOL_HTTP + "://" + httpHost + basePath);
+        httpServer.setUrl(SwaggerConstants.PROTOCOL_HTTP + "://" + httpHost + serverVersionPath + basePath);
         Server httpsServer = new Server();
-        httpsServer.setUrl(SwaggerConstants.PROTOCOL_HTTPS + "://" + httpsHost + basePath);
+        httpsServer.setUrl(SwaggerConstants.PROTOCOL_HTTPS + "://" + httpsHost + serverVersionPath + basePath);
         openAPI.setServers(Arrays.asList(httpServer, httpsServer));
     }
 
@@ -341,7 +354,7 @@ public class OpenAPIProcessor {
      * @param isJSONOut       output swagger data type JSON / YAML.
      * @return updated swagger definition as string.
      */
-    public String getUpdatedSwaggerFromApi(String existingSwagger, boolean isJSONIn, boolean isJSONOut, int port)
+    public String getUpdatedSwaggerFromApi(String existingSwagger, boolean isJSONIn, boolean isJSONOut, int port, String projectPath)
             throws APIGenException {
 
         if (api == null) {
@@ -493,7 +506,7 @@ public class OpenAPIProcessor {
         // Adding the new path map
         openAPI.setPaths(newPaths);
         updateInfoSection(openAPI);
-        addServersSection(openAPI, port);
+        addServersSection(openAPI, port, projectPath);
 
         try {
             if (isJSONOut) {
