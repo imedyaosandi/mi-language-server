@@ -213,7 +213,7 @@ public class OpenAPIProcessor {
             AdvanceDetails advanceDetails = overviewPageDetailsResponse.getBuildDetails().getAdvanceDetails();
             serverVersionPath = "/" + advanceDetails.getProjectGroupId().getValue() + "/" + advanceDetails.getProjectArtifactId().getValue()
                     + "/" + overviewPageDetailsResponse.getPrimaryDetails().getProjectVersion().getValue()
-                    + (api.getContext().startsWith("/") ? "" : "/");
+                    + serverVersionPath;
         }
 
         String basePath;
