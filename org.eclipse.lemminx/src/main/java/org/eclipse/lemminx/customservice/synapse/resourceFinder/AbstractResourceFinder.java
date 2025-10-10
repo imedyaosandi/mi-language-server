@@ -182,12 +182,9 @@ public abstract class AbstractResourceFinder {
 
     private String getFullyQualifiedName(OverviewPageDetailsResponse pomDetailsResponse, Resource resource) {
 
-        // For DataServices and proxy services, the reference name format will be updated as follows
-        // groupID__artifactID/ServiceName
+        // For DataServices and proxy services, the name remains unchanged as by default MI server won't expose versioned services
         if (ArtifactType.DATA_SERVICE.name().equals(resource.getType()) || ArtifactType.PROXY_SERVICE.name().equals(resource.getType())) {
-            return pomDetailsResponse.getBuildDetails().getAdvanceDetails().getProjectGroupId().getValue()
-                    + "__" + pomDetailsResponse.getBuildDetails().getAdvanceDetails().getProjectArtifactId().getValue()
-                    + "/" + resource.getName();
+            return resource.getName();
         }
         // For other artifact types, the name format will be updated as follows
         // groupID__artifactID__ArtifactName
