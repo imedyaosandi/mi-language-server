@@ -2,7 +2,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.wso2.language.server</groupId>
 	<artifactId>mi-language-server-parent</artifactId>
-	<version>0.24.0-wso2v80-SNAPSHOT</version>
+	<version>0.24.0-wso2v80</version>
 	<packaging>pom</packaging>
 	<name>MI Language Server - Parent</name>
 	<description>LemMinX is a XML Language Server Protocol (LSP), and can be used with any editor that supports LSP, to offer an outstanding XML editing experience</description>
@@ -37,7 +37,7 @@
 		<connection>scm:git:https://github.com/wso2/mi-language-server.git</connection>
 		<developerConnection>scm:git:https://github.com/wso2/mi-language-server.git</developerConnection>
 		<url>https://github.com/wso2/mi-language-server</url>
-		<tag>HEAD</tag>
+		<tag>0.24.0-wso2v80</tag>
 	</scm>
 	<modules>
 		<module>org.eclipse.lemminx</module>
