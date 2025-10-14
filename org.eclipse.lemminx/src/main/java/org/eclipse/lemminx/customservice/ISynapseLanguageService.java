@@ -59,6 +59,7 @@ import org.eclipse.lemminx.customservice.synapse.mediatorService.pojo.SynapseCon
 import org.eclipse.lemminx.customservice.synapse.mediatorService.pojo.SynapseConfigResponse;
 import org.eclipse.lemminx.customservice.synapse.mediatorService.pojo.UISchemaRequest;
 import org.eclipse.lemminx.customservice.synapse.parser.ConfigDetails;
+import org.eclipse.lemminx.customservice.synapse.parser.DependencyStatusResponse;
 import org.eclipse.lemminx.customservice.synapse.parser.DeployPluginDetails;
 import org.eclipse.lemminx.customservice.synapse.parser.OverviewPageDetailsResponse;
 import org.eclipse.lemminx.customservice.synapse.parser.UpdateConfigRequest;
@@ -290,4 +291,7 @@ public interface ISynapseLanguageService {
 
     @JsonRequest
     CompletableFuture<List<String>> pdfToImagesBase64(PdfToImagesRequest request);
+
+    @JsonRequest
+    CompletableFuture<DependencyStatusResponse> getDependencyStatusList();
 }

@@ -71,6 +71,7 @@ import org.eclipse.lemminx.customservice.synapse.mediatorService.pojo.SynapseCon
 import org.eclipse.lemminx.customservice.synapse.mediatorService.pojo.UISchemaRequest;
 import org.eclipse.lemminx.customservice.synapse.parser.ConfigDetails;
 import org.eclipse.lemminx.customservice.synapse.parser.Constants;
+import org.eclipse.lemminx.customservice.synapse.parser.DependencyStatusResponse;
 import org.eclipse.lemminx.customservice.synapse.parser.DeployPluginDetails;
 import org.eclipse.lemminx.customservice.synapse.parser.DependencyDownloadManager;
 import org.eclipse.lemminx.customservice.synapse.parser.OverviewPage;
@@ -143,8 +144,13 @@ import org.wso2.mi.tool.connector.tools.generator.grpc.GRPCConnectorGenerator;
 import org.wso2.mi.tool.connector.tools.generator.openapi.ConnectorGenerator;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -214,6 +220,7 @@ public class SynapseLanguageService implements ISynapseLanguageService {
                 MediatorFactoryFinder.init(projectServerVersion, projectUri, connectorHolder);
                 DynamicClassLoader.updateClassLoader(Path.of(projectUri, "deployment", "libs").toFile());
                 this.tryOutManager = new TryOutManager(projectUri, miServerPath, connectorHolder, languageClient);
+                packHttpConnector();
             } catch (Exception e) {
                 log.log(Level.SEVERE, "Error while updating class loader for DB drivers.", e);
             }
@@ -232,7 +239,6 @@ public class SynapseLanguageService implements ISynapseLanguageService {
             connectorLoader = new NewProjectConnectorLoader(languageClient, connectorHolder, inboundConnectorHolder);
         }
         connectorLoader.init(projectUri);
-        updateConnectorDependencies();
     }
 
     @Override
@@ -677,6 +683,12 @@ public class SynapseLanguageService implements ISynapseLanguageService {
     }
 
     @Override
+    public CompletableFuture<DependencyStatusResponse> getDependencyStatusList() {
+
+        return CompletableFuture.supplyAsync(() -> ConnectorDownloadManager.getDependencyStatusList(projectUri));
+    }
+
+    @Override
     public CompletableFuture<String> loadDependentResources() {
 
         return CompletableFuture.supplyAsync(() -> resourceFinder.loadDependentResources(projectUri));
@@ -799,5 +811,41 @@ public class SynapseLanguageService implements ISynapseLanguageService {
     public void dispose() {
 
         tryOutManager.shutdown();
+    }
+
+    private void packHttpConnector() {
+
+        if (Utils.compareVersions(projectServerVersion, Constant.MI_440_VERSION) >= 0) {
+            String projectId = new File(projectUri).getName() + "_" + Utils.getHash(projectUri);
+            String connectorDownloadPath = Path.of(System.getProperty(Constant.USER_HOME), Constant.WSO2_MI,
+                    Constant.CONNECTORS, projectId, Constant.DOWNLOADED).toString();
+            File connectorDownloadFolder = new File(connectorDownloadPath);
+            if (!connectorDownloadFolder.exists()) {
+                boolean isDirectoryCreationSuccessful = connectorDownloadFolder.mkdirs();
+                if (!isDirectoryCreationSuccessful) {
+					log.log(Level.SEVERE, "Error occurred while creating directory: " + connectorDownloadFolder);
+                }
+            } else {
+                File[] matchingFiles = connectorDownloadFolder.listFiles((dir, name) ->
+                        name.startsWith("mi-connector-http") && name.endsWith(".zip")
+                );
+                if (matchingFiles != null && matchingFiles.length > 0) {
+                    return;
+                }
+            }
+            try {
+                InputStream inputStream = SynapseLanguageService.class.getResourceAsStream(
+                        "/org/eclipse/lemminx/connectors/mi-connector-http-0.1.13.zip");
+                if (inputStream == null) {
+                    throw new FileNotFoundException("HTTP connector not found.");
+                }
+                Path httpConnectorPath = Paths.get(connectorDownloadPath, "mi-connector-http-0.1.13.zip");
+                Files.copy(inputStream, httpConnectorPath, StandardCopyOption.REPLACE_EXISTING);
+                inputStream.close();
+                updateConnectors();
+            } catch (Exception e) {
+                log.log(Level.SEVERE, "Error while packing the HTTP connector to the project. ", e);
+            }
+        }
     }
 }

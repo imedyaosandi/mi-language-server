@@ -36,6 +36,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
+import static org.eclipse.lemminx.customservice.synapse.parser.pom.PomParser.getPomDetails;
 import static org.eclipse.lemminx.customservice.synapse.utils.Utils.copyFile;
 import static org.eclipse.lemminx.customservice.synapse.utils.Utils.getDependencyFromLocalRepo;
 
@@ -87,6 +88,29 @@ public class ConnectorDownloadManager {
             }
         }
         return failedDependencies;
+    }
+
+    public static DependencyStatusResponse getDependencyStatusList(String projectPath) {
+        OverviewPageDetailsResponse pomDetailsResponse = new OverviewPageDetailsResponse();
+        getPomDetails(projectPath, pomDetailsResponse);
+        List<DependencyDetails> connectorDependencies =
+                pomDetailsResponse.getDependenciesDetails().getConnectorDependencies();
+        List<DependencyDetails> downloadedDependencies = new ArrayList<>();
+        List<DependencyDetails> pendingDependencies = new ArrayList<>();
+        String projectId = new File(projectPath).getName() + "_" + Utils.getHash(projectPath);
+        File directory = Path.of(System.getProperty(Constant.USER_HOME), Constant.WSO2_MI, Constant.CONNECTORS,
+                projectId).toFile();
+        File downloadDirectory = Path.of(directory.getAbsolutePath(), Constant.DOWNLOADED).toFile();
+        for (DependencyDetails dependency : connectorDependencies) {
+            File connector = Path.of(downloadDirectory.getAbsolutePath(),
+                    dependency.getArtifact() + "-" + dependency.getVersion() + Constant.ZIP_EXTENSION).toFile();
+            if (connector.exists() && connector.isFile()) {
+                downloadedDependencies.add(dependency);
+            } else {
+                pendingDependencies.add(dependency);
+            }
+        }
+        return new DependencyStatusResponse(downloadedDependencies, pendingDependencies);
     }
 
     private static void deleteRemovedConnectors(File downloadDirectory, List<DependencyDetails> dependencies,
