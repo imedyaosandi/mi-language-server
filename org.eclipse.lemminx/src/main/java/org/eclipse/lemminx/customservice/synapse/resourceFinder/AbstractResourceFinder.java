@@ -15,6 +15,7 @@
 package org.eclipse.lemminx.customservice.synapse.resourceFinder;
 
 import org.eclipse.lemminx.customservice.synapse.dependency.tree.ArtifactType;
+import org.eclipse.lemminx.customservice.synapse.parser.Node;
 import org.eclipse.lemminx.customservice.synapse.parser.OverviewPageDetailsResponse;
 import org.eclipse.lemminx.customservice.synapse.parser.pom.PomParser;
 import org.eclipse.lemminx.customservice.synapse.resourceFinder.pojo.ArtifactResource;
@@ -126,6 +127,8 @@ public abstract class AbstractResourceFinder {
 
         try (var dependentProjects = list(extractedDir)) {
             // Iterate over each dependent project directory
+            OverviewPageDetailsResponse parentProjectDetails = new OverviewPageDetailsResponse();
+            PomParser.getPomDetails(projectPath, parentProjectDetails);
             for (Path dependentProject : dependentProjects.toArray(Path[]::new)) {
                 if (isDirectory(dependentProject)) {
                     String projectNameDep = dependentProject.getFileName().toString();
@@ -135,7 +138,9 @@ public abstract class AbstractResourceFinder {
                     Map<String, ResourceResponse> dependentProjectAllResources = findAllResources(dependentProject.toString());
                     for (String type : dependentProjectAllResources.keySet()) {
                         ResourceResponse resources = dependentProjectAllResources.get(type);
-                        if (resources != null) {
+                        Node isVersionedDeployment = parentProjectDetails.getBuildDetails().getVersionedDeployment();
+                        if (isVersionedDeployment != null && Boolean.parseBoolean(isVersionedDeployment.getValue())
+                                && resources != null) {
                             // Append project details(group ID and artifact ID) to synapse artifacts
                             if (resources.getResources() != null) {
                                 resources.getResources().forEach(resource -> {
