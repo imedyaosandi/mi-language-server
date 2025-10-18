@@ -66,7 +66,7 @@ public class IntegrationProjectDownloadManager {
      * @param dependencies the list of initial dependencies to process
      * @return a list of dependency identifiers that failed to download or process
      */
-    public static List<String> downloadDependencies(String projectPath, List<DependencyDetails> dependencies) {
+    public static DependencyDownloadResult downloadDependencies(String projectPath, List<DependencyDetails> dependencies) {
 
         String projectId = new File(projectPath).getName() + "_" + Utils.getHash(projectPath);
         File directory = Path.of(System.getProperty(Constant.USER_HOME), Constant.WSO2_MI,
@@ -85,11 +85,18 @@ public class IntegrationProjectDownloadManager {
         }
 
         List<String> failedDependencies = new ArrayList<>();
+        List<String> noDescriptorDependencies = new ArrayList<>();
         Set<String> fetchedDependencies = new HashSet<>();
 
         for (DependencyDetails dependency : dependencies) {
             try {
                 fetchDependencyRecursively(dependency, downloadDirectory, fetchedDependencies);
+            } catch (NoDescriptorException e) {
+                String failedDependency =
+                        dependency.getGroupId() + HYPHEN + dependency.getArtifact() + HYPHEN + dependency.getVersion();
+                LOGGER.log(Level.WARNING,
+                        "Descriptor file not found for dependency " + failedDependency + ": " + e.getMessage());
+                noDescriptorDependencies.add(failedDependency);
             } catch (Exception e) {
                 String failedDependency =
                         dependency.getGroupId() + HYPHEN + dependency.getArtifact() + HYPHEN + dependency.getVersion();
@@ -98,7 +105,7 @@ public class IntegrationProjectDownloadManager {
                 failedDependencies.add(failedDependency);
             }
         }
-        return failedDependencies;
+        return new DependencyDownloadResult(failedDependencies, noDescriptorDependencies);
     }
 
     /**
@@ -130,7 +137,13 @@ public class IntegrationProjectDownloadManager {
         }
 
         // Parse the descriptor.xml to find transitive dependencies
-        List<DependencyDetails> transitiveDependencies = parseDescriptorFile(carFile);
+        List<DependencyDetails> transitiveDependencies;
+        try {
+            transitiveDependencies = parseDescriptorFile(carFile);
+        } catch (Exception e) {
+            throw new NoDescriptorException(
+                    "Failed to parse descriptor.xml for dependency: " + dependencyKey, e);
+        }
 
         // Recursively fetch transitive dependencies
         for (DependencyDetails transitiveDependency : transitiveDependencies) {
@@ -197,7 +210,7 @@ public class IntegrationProjectDownloadManager {
             ZipEntry descriptorEntry = zipFile.getEntry("descriptor.xml");
             if (descriptorEntry == null) {
                 LOGGER.log(Level.INFO, "descriptor.xml not found in .car file: " + carFile.getName());
-                return dependencies; // Return empty list if descriptor.xml is missing
+                throw new Exception("descriptor.xml not found in .car file: " + carFile.getName());
             }
 
             InputStream inputStream = zipFile.getInputStream(descriptorEntry);

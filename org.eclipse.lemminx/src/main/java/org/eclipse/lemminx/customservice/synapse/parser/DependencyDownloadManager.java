@@ -36,6 +36,8 @@ public class DependencyDownloadManager {
      */
     public static String downloadDependencies(String projectPath) {
 
+        StringBuilder errorMessage = new StringBuilder();
+        Boolean hasErrors = false;
         OverviewPageDetailsResponse pomDetailsResponse = new OverviewPageDetailsResponse();
         getPomDetails(projectPath, pomDetailsResponse);
         List<DependencyDetails> connectorDependencies =
@@ -44,18 +46,40 @@ public class DependencyDownloadManager {
                 pomDetailsResponse.getDependenciesDetails().getIntegrationProjectDependencies();
         List<String> failedConnectorDependencies =
                 ConnectorDownloadManager.downloadDependencies(projectPath, connectorDependencies);
-        List<String> failedIntegrationProjectDependencies =
+        DependencyDownloadResult failedIntegrationProjectDependencies =
                 IntegrationProjectDownloadManager.downloadDependencies(projectPath, integrationProjectDependencies);
+
         if (!failedConnectorDependencies.isEmpty()) {
-            LOGGER.log(Level.SEVERE,
-                    "Some connectors were not downloaded: " + String.join(", ", failedConnectorDependencies));
-            return "Some connectors were not downloaded: " + String.join(", ", failedConnectorDependencies);
+            String connectorError = "Some connectors were not downloaded: " + String.join(", ", failedConnectorDependencies);
+            LOGGER.log(Level.SEVERE, connectorError);
+            errorMessage.append(connectorError);
+            hasErrors = true;
         }
-        if (!failedIntegrationProjectDependencies.isEmpty()) {
-            LOGGER.log(Level.SEVERE, "Following integration project dependencies were unavailable: " +
-                    String.join(", ", failedIntegrationProjectDependencies));
-            return "Following integration project dependencies were unavailable: " +
-                    String.join(", ", failedIntegrationProjectDependencies);
+
+        if (!failedIntegrationProjectDependencies.getFailedDependencies().isEmpty()) {
+            String projectError = "Following integration project dependencies were unavailable: " +
+                    String.join(", ", failedIntegrationProjectDependencies.getFailedDependencies());
+            LOGGER.log(Level.SEVERE, projectError);
+            if (hasErrors) {
+                errorMessage.append(". ");
+            }
+            errorMessage.append(projectError);
+            hasErrors = true;
+        }
+
+        if (!failedIntegrationProjectDependencies.getNoDescriptorDependencies().isEmpty()) {
+            String descriptorError = "Following dependencies do not contain the descriptor file: " +
+                    String.join(", ", failedIntegrationProjectDependencies.getNoDescriptorDependencies());
+            LOGGER.log(Level.SEVERE, descriptorError);
+            if (hasErrors) {
+                errorMessage.append(". ");
+            }
+            errorMessage.append(descriptorError);
+            hasErrors = true;
+        }
+
+        if (hasErrors) {
+            return errorMessage.toString();
         }
         return "Success";
     }
