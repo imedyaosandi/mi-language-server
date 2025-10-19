@@ -25,12 +25,15 @@ import java.util.List;
  */
 public class DependencyDownloadResult {
 
-    private final List<String> failedDependencies;
-    private final List<String> noDescriptorDependencies;
+    private List<String> failedDependencies;
+    private List<String> noDescriptorDependencies;
+    private List<String> versioningTypeMismatchDependencies;
 
-    public DependencyDownloadResult(List<String> failedDependencies, List<String> noDescriptorDependencies) {
+    public DependencyDownloadResult(List<String> failedDependencies, List<String> noDescriptorDependencies,
+                                    List<String> versioningTypeMismatchDependencies) {
         this.failedDependencies = failedDependencies;
         this.noDescriptorDependencies = noDescriptorDependencies;
+        this.versioningTypeMismatchDependencies = versioningTypeMismatchDependencies;
     }
 
     public List<String> getFailedDependencies() {
@@ -39,5 +42,9 @@ public class DependencyDownloadResult {
 
     public List<String> getNoDescriptorDependencies() {
         return noDescriptorDependencies;
+    }
+
+    public List<String> getVersioningTypeMismatchDependencies() {
+        return versioningTypeMismatchDependencies;
     }
 }

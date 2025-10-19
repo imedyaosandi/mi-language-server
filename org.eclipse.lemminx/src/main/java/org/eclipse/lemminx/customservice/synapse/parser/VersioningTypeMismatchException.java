@@ -15,17 +15,16 @@
 package org.eclipse.lemminx.customservice.synapse.parser;
 
 /**
- * Exception thrown when a descriptor.xml file is missing or cannot be parsed
- * from an integration project dependency (.car file).
+ * Exception thrown when the versioned deployment status is different of the parent and child projects.
  */
-public class NoDescriptorException extends Exception {
+public class VersioningTypeMismatchException extends Exception {
 
-    public NoDescriptorException(String message) {
+    public VersioningTypeMismatchException(String message) {
 
         super(message);
     }
 
-    public NoDescriptorException(String message, Throwable cause) {
+    public VersioningTypeMismatchException(String message, Throwable cause) {
 
         super(message, cause);
     }

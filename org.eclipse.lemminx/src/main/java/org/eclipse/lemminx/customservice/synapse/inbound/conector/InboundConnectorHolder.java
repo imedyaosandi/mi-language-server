@@ -85,7 +85,7 @@ public class InboundConnectorHolder {
         OverviewPageDetailsResponse pomDetailsResponse = new OverviewPageDetailsResponse();
         getPomDetails(projectPath, pomDetailsResponse);
         Node node = pomDetailsResponse.getPrimaryDetails().getRuntimeVersion();
-        if ( node != null && Constant.MI_450_VERSION.equals(node.getValue())) {
+        if (node != null && Constant.MI_450_VERSION.equals(node.getValue())) {
             this.projectRuntimeVersion = node.getValue();
         } else {
             this.projectRuntimeVersion = projectRuntimeVersion;

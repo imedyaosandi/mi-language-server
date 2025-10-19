@@ -14,6 +14,12 @@
 
 package org.eclipse.lemminx.customservice.synapse.parser;
 
+import org.eclipse.lemminx.customservice.synapse.utils.Constant;
+import org.eclipse.lemminx.customservice.synapse.utils.Utils;
+
+import java.io.File;
+import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -37,7 +43,7 @@ public class DependencyDownloadManager {
     public static String downloadDependencies(String projectPath) {
 
         StringBuilder errorMessage = new StringBuilder();
-        Boolean hasErrors = false;
+        boolean hasErrors = false;
         OverviewPageDetailsResponse pomDetailsResponse = new OverviewPageDetailsResponse();
         getPomDetails(projectPath, pomDetailsResponse);
         List<DependencyDetails> connectorDependencies =
@@ -46,8 +52,12 @@ public class DependencyDownloadManager {
                 pomDetailsResponse.getDependenciesDetails().getIntegrationProjectDependencies();
         List<String> failedConnectorDependencies =
                 ConnectorDownloadManager.downloadDependencies(projectPath, connectorDependencies);
+        Node isVersionedDeployment = pomDetailsResponse.getBuildDetails().getVersionedDeployment();
+        boolean isVersionedDeploymentEnabled = isVersionedDeployment != null ?
+                Boolean.parseBoolean(isVersionedDeployment.getValue()) : false;
         DependencyDownloadResult failedIntegrationProjectDependencies =
-                IntegrationProjectDownloadManager.downloadDependencies(projectPath, integrationProjectDependencies);
+                IntegrationProjectDownloadManager.downloadDependencies(projectPath, integrationProjectDependencies,
+                        isVersionedDeploymentEnabled);
 
         if (!failedConnectorDependencies.isEmpty()) {
             String connectorError = "Some connectors were not downloaded: " + String.join(", ", failedConnectorDependencies);
@@ -78,9 +88,46 @@ public class DependencyDownloadManager {
             hasErrors = true;
         }
 
+        if (!failedIntegrationProjectDependencies.getVersioningTypeMismatchDependencies().isEmpty()) {
+            String versioningTypeError = "Versioned deployment status is different from the dependent project: " +
+                    String.join(", ", failedIntegrationProjectDependencies.getVersioningTypeMismatchDependencies());
+            LOGGER.log(Level.SEVERE, versioningTypeError);
+            if (hasErrors) {
+                errorMessage.append(". ");
+            }
+            errorMessage.append(versioningTypeError);
+            hasErrors = true;
+        }
+
         if (hasErrors) {
             return errorMessage.toString();
         }
+        LOGGER.log(Level.INFO, "All dependencies downloaded successfully for project: " + projectPath);
         return "Success";
+    }
+
+    public static DependencyStatusResponse getDependencyStatusList(String projectPath) {
+        OverviewPageDetailsResponse pomDetailsResponse = new OverviewPageDetailsResponse();
+        getPomDetails(projectPath, pomDetailsResponse);
+        List<DependencyDetails> dependencies = new ArrayList<>(
+                pomDetailsResponse.getDependenciesDetails().getConnectorDependencies()
+        );
+        dependencies.addAll(pomDetailsResponse.getDependenciesDetails().getIntegrationProjectDependencies());
+        List<DependencyDetails> downloadedDependencies = new ArrayList<>();
+        List<DependencyDetails> pendingDependencies = new ArrayList<>();
+        String projectId = new File(projectPath).getName() + "_" + Utils.getHash(projectPath);
+        File directory = Path.of(System.getProperty(Constant.USER_HOME), Constant.WSO2_MI, Constant.CONNECTORS,
+                projectId).toFile();
+        File downloadDirectory = Path.of(directory.getAbsolutePath(), Constant.DOWNLOADED).toFile();
+        for (DependencyDetails dependency : dependencies) {
+            File connector = Path.of(downloadDirectory.getAbsolutePath(),
+                    dependency.getArtifact() + Constant.HYPHEN + dependency.getVersion() + Constant.DOT + dependency.getType()).toFile();
+            if (connector.exists() && connector.isFile()) {
+                downloadedDependencies.add(dependency);
+            } else {
+                pendingDependencies.add(dependency);
+            }
+        }
+        return new DependencyStatusResponse(downloadedDependencies, pendingDependencies);
     }
 }
