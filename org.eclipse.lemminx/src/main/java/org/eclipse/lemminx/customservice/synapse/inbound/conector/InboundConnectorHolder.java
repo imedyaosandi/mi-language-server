@@ -25,6 +25,8 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import org.apache.commons.lang3.StringUtils;
+import org.eclipse.lemminx.customservice.synapse.parser.Node;
+import org.eclipse.lemminx.customservice.synapse.parser.OverviewPageDetailsResponse;
 import org.eclipse.lemminx.customservice.synapse.syntaxTree.SyntaxTreeGenerator;
 import org.eclipse.lemminx.customservice.synapse.syntaxTree.pojo.inbound.InboundEndpoint;
 import org.eclipse.lemminx.customservice.synapse.utils.Constant;
@@ -46,6 +48,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import static org.eclipse.lemminx.customservice.synapse.parser.pom.PomParser.getPomDetails;
 
 public class InboundConnectorHolder {
 
@@ -76,11 +80,22 @@ public class InboundConnectorHolder {
         }
         this.projectPath = projectPath;
         this.projectId = Utils.getHash(projectPath);
-        this.projectRuntimeVersion = projectRuntimeVersion;
+        // Maintain the original runtime version of the project as the 4.5.0 version has new inbound-connectors
+        // TODO: https://github.com/wso2/mi-vscode/issues/1331
+        OverviewPageDetailsResponse pomDetailsResponse = new OverviewPageDetailsResponse();
+        getPomDetails(projectPath, pomDetailsResponse);
+        Node node = pomDetailsResponse.getPrimaryDetails().getRuntimeVersion();
+        if (node != null && Constant.MI_450_VERSION.equals(node.getValue())) {
+            this.projectRuntimeVersion = node.getValue();
+        } else {
+            this.projectRuntimeVersion = projectRuntimeVersion;
+        }
         this.tempFolderPath = System.getProperty("user.home") + File.separator + ".wso2-mi" + File.separator +
                 Constant.INBOUND_CONNECTORS + File.separator + new File(projectPath).getName() + "_" + projectId;
+        String referenceRuntime = Constant.MI_450_VERSION.equals(this.projectRuntimeVersion) ? Constant.MI_440_VERSION
+                                    : this.projectRuntimeVersion;
         this.localInboundConnectors = Utils.getUISchemaMap("org/eclipse/lemminx/inbound-endpoints/"
-                + projectRuntimeVersion.replace(".", StringUtils.EMPTY));
+                + referenceRuntime.replace(".", StringUtils.EMPTY));
         getCustomInboundConnectors();
         loadInboundConnectors();
         this.localInboundEndpointsListForCopilot = generateInboundConnectorArray();

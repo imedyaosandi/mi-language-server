@@ -225,10 +225,11 @@ public class SynapseLanguageService implements ISynapseLanguageService {
                 log.log(Level.SEVERE, "Error while updating class loader for DB drivers.", e);
             }
             this.expressionHelperProvider = new ExpressionHelperProvider(projectUri);
+            resourceFinder = ResourceFinderFactory.getResourceFinder(isLegacyProject);
+            resourceFinder.loadDependentResources(projectUri);
         } else {
             log.log(Level.SEVERE, "Project path is null. Language server initialization failed.");
         }
-        resourceFinder = ResourceFinderFactory.getResourceFinder(isLegacyProject);
     }
 
     private void initializeConnectorLoader() throws InvalidConfigurationException {
@@ -685,7 +686,7 @@ public class SynapseLanguageService implements ISynapseLanguageService {
     @Override
     public CompletableFuture<DependencyStatusResponse> getDependencyStatusList() {
 
-        return CompletableFuture.supplyAsync(() -> ConnectorDownloadManager.getDependencyStatusList(projectUri));
+        return CompletableFuture.supplyAsync(() -> DependencyDownloadManager.getDependencyStatusList(projectUri));
     }
 
     @Override

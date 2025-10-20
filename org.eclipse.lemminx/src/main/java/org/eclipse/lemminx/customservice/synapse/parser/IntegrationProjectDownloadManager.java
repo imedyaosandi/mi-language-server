@@ -64,9 +64,11 @@ public class IntegrationProjectDownloadManager {
      *
      * @param projectPath  the file system path of the integration project
      * @param dependencies the list of initial dependencies to process
+     * @param isVersionedDeploymentEnabled indicates if versioned deployment is enabled in the parent project
      * @return a list of dependency identifiers that failed to download or process
      */
-    public static DependencyDownloadResult downloadDependencies(String projectPath, List<DependencyDetails> dependencies) {
+    public static DependencyDownloadResult downloadDependencies(String projectPath, List<DependencyDetails> dependencies,
+                                                                boolean isVersionedDeploymentEnabled) {
 
         String projectId = new File(projectPath).getName() + "_" + Utils.getHash(projectPath);
         File directory = Path.of(System.getProperty(Constant.USER_HOME), Constant.WSO2_MI,
@@ -86,17 +88,25 @@ public class IntegrationProjectDownloadManager {
 
         List<String> failedDependencies = new ArrayList<>();
         List<String> noDescriptorDependencies = new ArrayList<>();
+        List<String> versioningMismatchDependencies = new ArrayList<>();
         Set<String> fetchedDependencies = new HashSet<>();
 
         for (DependencyDetails dependency : dependencies) {
             try {
-                fetchDependencyRecursively(dependency, downloadDirectory, fetchedDependencies);
+                fetchDependencyRecursively(dependency, downloadDirectory, fetchedDependencies, isVersionedDeploymentEnabled);
             } catch (NoDescriptorException e) {
                 String failedDependency =
                         dependency.getGroupId() + HYPHEN + dependency.getArtifact() + HYPHEN + dependency.getVersion();
                 LOGGER.log(Level.WARNING,
                         "Descriptor file not found for dependency " + failedDependency + ": " + e.getMessage());
                 noDescriptorDependencies.add(failedDependency);
+            } catch (VersioningTypeMismatchException e) {
+                String failedDependency =
+                        dependency.getGroupId() + HYPHEN + dependency.getArtifact() + HYPHEN + dependency.getVersion();
+                LOGGER.log(Level.WARNING,
+                        "Versioned deployment status does not match with the parent project "
+                                + failedDependency + ": " + e.getMessage());
+                versioningMismatchDependencies.add(failedDependency);
             } catch (Exception e) {
                 String failedDependency =
                         dependency.getGroupId() + HYPHEN + dependency.getArtifact() + HYPHEN + dependency.getVersion();
@@ -105,7 +115,7 @@ public class IntegrationProjectDownloadManager {
                 failedDependencies.add(failedDependency);
             }
         }
-        return new DependencyDownloadResult(failedDependencies, noDescriptorDependencies);
+        return new DependencyDownloadResult(failedDependencies, noDescriptorDependencies, versioningMismatchDependencies);
     }
 
     /**
@@ -119,10 +129,12 @@ public class IntegrationProjectDownloadManager {
      * @param dependency          the dependency to fetch
      * @param downloadDirectory   the directory to store downloaded .car files
      * @param fetchedDependencies a set of dependency keys already fetched to prevent duplication
+     * @param isVersionedDeploymentEnabled indicates if versioned deployment is enabled in the parent project
      * @throws Exception if fetching or parsing fails
      */
     static void fetchDependencyRecursively(DependencyDetails dependency, File downloadDirectory,
-                                           Set<String> fetchedDependencies) throws Exception {
+                                           Set<String> fetchedDependencies, boolean isVersionedDeploymentEnabled)
+            throws Exception {
 
         String dependencyKey = dependency.getGroupId() + ":" + dependency.getArtifact() + ":" + dependency.getVersion();
         if (fetchedDependencies.contains(dependencyKey)) {
@@ -139,15 +151,14 @@ public class IntegrationProjectDownloadManager {
         // Parse the descriptor.xml to find transitive dependencies
         List<DependencyDetails> transitiveDependencies;
         try {
-            transitiveDependencies = parseDescriptorFile(carFile);
+            transitiveDependencies = parseDescriptorFile(carFile, isVersionedDeploymentEnabled);
         } catch (Exception e) {
-            throw new NoDescriptorException(
-                    "Failed to parse descriptor.xml for dependency: " + dependencyKey, e);
+            throw e;
         }
 
         // Recursively fetch transitive dependencies
         for (DependencyDetails transitiveDependency : transitiveDependencies) {
-            fetchDependencyRecursively(transitiveDependency, downloadDirectory, fetchedDependencies);
+            fetchDependencyRecursively(transitiveDependency, downloadDirectory, fetchedDependencies, isVersionedDeploymentEnabled);
         }
     }
 
@@ -200,17 +211,19 @@ public class IntegrationProjectDownloadManager {
      * </p>
      *
      * @param carFile the .car file containing the `descriptor.xml`
+     * @param parentHasVersionedDeployment indicates if versioned deployment is enabled in the parent project
      * @return a list of `DependencyDetails` parsed from the descriptor
      * @throws Exception if the file cannot be read or parsed, or if `descriptor.xml` is missing
      */
-    private static List<DependencyDetails> parseDescriptorFile(File carFile) throws Exception {
+    private static List<DependencyDetails> parseDescriptorFile(File carFile, boolean parentHasVersionedDeployment)
+            throws Exception {
 
         List<DependencyDetails> dependencies = new ArrayList<>();
         try (ZipFile zipFile = new ZipFile(carFile)) {
             ZipEntry descriptorEntry = zipFile.getEntry("descriptor.xml");
             if (descriptorEntry == null) {
                 LOGGER.log(Level.INFO, "descriptor.xml not found in .car file: " + carFile.getName());
-                throw new Exception("descriptor.xml not found in .car file: " + carFile.getName());
+                throw new NoDescriptorException("descriptor.xml not found in .car file: " + carFile.getName());
             }
 
             InputStream inputStream = zipFile.getInputStream(descriptorEntry);
@@ -218,6 +231,18 @@ public class IntegrationProjectDownloadManager {
             DocumentBuilder builder = factory.newDocumentBuilder();
             Document document = builder.parse(inputStream);
             document.getDocumentElement().normalize();
+
+            NodeList versionedDeploymentNodes = document.getElementsByTagName(Constants.VERSIONED_DEPLOYMENT);
+            boolean childHasVersionedDeployment = false;
+            if (versionedDeploymentNodes.getLength() > 0) {
+                String versionedDeploymentValue = versionedDeploymentNodes.item(0).getTextContent().trim();
+                childHasVersionedDeployment = Boolean.parseBoolean(versionedDeploymentValue);
+            }
+
+            if (childHasVersionedDeployment != parentHasVersionedDeployment) {
+                throw new VersioningTypeMismatchException("Versioned deployment status is different from the " +
+                        "parent project: " + carFile.getName());
+            }
 
             NodeList dependencyNodes = document.getElementsByTagName("dependency");
             for (int i = 0; i < dependencyNodes.getLength(); i++) {
