@@ -3,7 +3,7 @@
   "type": "mediator",
   "title": "Log Mediator",
   "help": "Generates logs for messages. Log details are customisable.",
-  "banner": "This is an old version of the Log mediator. Please migrate to the new version.",
+  "banner": "This is an old version of the Log mediator.",
   "elements": [
     {
       "type": "attribute",
@@ -94,6 +94,17 @@
         "defaultValue": "",
         "required": "false",
         "helpTip": "Description"
+      }
+    },
+    {
+      "type": "attribute",
+      "value": {
+        "name": "isLatest",
+        "displayName": "IsLatest",
+        "inputType": "string",
+        "defaultValue": "false",
+        "hidden": "true",
+        "required": "true"
       }
     }
   ]

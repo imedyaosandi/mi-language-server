@@ -3,7 +3,7 @@
   "type": "mediator",
   "title": "Payload Mediator",
   "help": "Replaces message payload with a new SOAP/JSON payload.",
-  "banner": "This is an old version of the Payload Factory mediator. Please migrate to the new version.",
+  "banner": "This is an old version of the Payload Factory mediator.",
   "canTryout": true,
   "elements": [
     {
@@ -176,6 +176,17 @@
         "defaultValue": "",
         "required": false,
         "helpTip": ""
+      }
+    },
+    {
+      "type": "attribute",
+      "value": {
+        "name": "isLatest",
+        "displayName": "IsLatest",
+        "inputType": "string",
+        "defaultValue": "false",
+        "hidden": "true",
+        "required": "true"
       }
     }
   ]

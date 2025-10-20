@@ -3,7 +3,7 @@
   "type": "mediator",
   "title": "ForEach Mediator",
   "help": "Splits message based on XPath/JSONPath, processes sequentially, then merges back.",
-  "banner": "This is an old version of the Foreach mediator. Please migrate to the new version.",
+  "banner": "This is an old version of the Foreach mediator.",
   "elements": [
     {
       "type": "attribute",

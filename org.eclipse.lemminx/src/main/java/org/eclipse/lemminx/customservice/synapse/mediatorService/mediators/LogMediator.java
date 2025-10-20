@@ -32,6 +32,12 @@ public class LogMediator {
                                                                                               Log log,
                                                                                               List<String> dirtyFields) {
 
+        if (data.containsKey("isLatest") && !Boolean.parseBoolean((String) data.get("isLatest"))) {
+            data.put("isLatest", false);
+        } else {
+            data.put("isLatest", true);
+        }
+
         if (data.containsKey("level") && data.get("level") instanceof String) {
             data.put("level", ((String) data.get("level")).toLowerCase());
         }

@@ -116,6 +116,12 @@ public class PayloadFactoryMediator {
                                                                                               PayloadFactory payloadFactory,
                                                                                               List<String> dirtyFields) {
 
+        if (data.containsKey("isLatest") && !Boolean.parseBoolean((String) data.get("isLatest"))) {
+            data.put("isLatest", false);
+        } else {
+            data.put("isLatest", true);
+        }
+
         Boolean useTemplateResource = (Boolean) data.get("useTemplateResource");
         if (useTemplateResource == null || !useTemplateResource) {
             data.put("isInlined", true);
