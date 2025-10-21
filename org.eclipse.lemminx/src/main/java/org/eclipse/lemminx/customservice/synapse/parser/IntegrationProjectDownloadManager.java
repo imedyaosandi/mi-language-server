@@ -24,6 +24,7 @@ import org.w3c.dom.NodeList;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -153,6 +154,7 @@ public class IntegrationProjectDownloadManager {
         try {
             transitiveDependencies = parseDescriptorFile(carFile, isVersionedDeploymentEnabled);
         } catch (Exception e) {
+            Files.deleteIfExists(carFile.toPath());
             throw e;
         }
 
