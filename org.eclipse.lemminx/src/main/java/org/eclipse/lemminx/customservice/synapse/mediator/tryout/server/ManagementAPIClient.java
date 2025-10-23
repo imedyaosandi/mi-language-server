@@ -51,6 +51,7 @@ public class ManagementAPIClient {
     private static final int DEFAULT_PORT = 9164;
     private static final String USERNAME = "admin";
     private static final String PASSWORD = "admin";
+    private static final String SERVER_SHUTDOWN_PAYLOAD = "{ \"status\": \"shutdown\" }";
     private ObjectMapper objectMapper;
     private HttpClient client;
     private static final String HOST = TryOutConstants.LOCALHOST;
@@ -119,6 +120,21 @@ public class ManagementAPIClient {
             // Parse the response to get the access token
             JsonNode responseBody = objectMapper.readTree(response.body());
             accessToken = responseBody.get("AccessToken").asText();
+        } catch (IOException e) {
+            LOGGER.severe("Failed to connect to the server: " + e.getMessage());
+        }
+    }
+
+    public void shutdown() throws InterruptedException {
+
+        try {;
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(String.format("https://%s:%d/management/server", HOST, port)))
+                    .header("Content-Type", "application/json")
+                    .header("Authorization", "Bearer " + accessToken)
+                    .method("PATCH", HttpRequest.BodyPublishers.ofString(SERVER_SHUTDOWN_PAYLOAD))
+                    .build();
+            client.send(request, HttpResponse.BodyHandlers.ofString());
         } catch (IOException e) {
             LOGGER.severe("Failed to connect to the server: " + e.getMessage());
         }

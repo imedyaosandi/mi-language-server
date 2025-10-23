@@ -16,6 +16,7 @@ package org.eclipse.lemminx.customservice.synapse.mediator.tryout;
 
 import com.google.gson.JsonObject;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.woden.internal.wsdl20.Constants;
 import org.eclipse.lemminx.commons.BadLocationException;
 import org.eclipse.lemminx.customservice.SynapseLanguageClientAPI;
 import org.eclipse.lemminx.customservice.synapse.debugger.DebuggerHelper;
@@ -36,6 +37,7 @@ import org.eclipse.lemminx.customservice.synapse.mediator.tryout.pojo.MediatorTr
 import org.eclipse.lemminx.customservice.synapse.mediator.tryout.pojo.NoBreakpointHitException;
 import org.eclipse.lemminx.customservice.synapse.mediator.tryout.pojo.Property;
 import org.eclipse.lemminx.customservice.synapse.mediator.tryout.server.MIServer;
+import org.eclipse.lemminx.customservice.synapse.mediator.tryout.server.ManagementAPIClient;
 import org.eclipse.lemminx.customservice.synapse.syntaxTree.SyntaxTreeGenerator;
 import org.eclipse.lemminx.customservice.synapse.syntaxTree.pojo.NamedSequence;
 import org.eclipse.lemminx.customservice.synapse.syntaxTree.pojo.STNode;
@@ -67,6 +69,7 @@ import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import static org.eclipse.lemminx.customservice.synapse.mediator.TryOutConstants.DEFAULT_SERVER_PORT;
 import static org.eclipse.lemminx.customservice.synapse.mediator.TryOutConstants.TEMP_FOLDER_PATH;
 
 public class TryOutHandler {
@@ -119,6 +122,7 @@ public class TryOutHandler {
      */
     public synchronized MediatorTryoutInfo handle(MediatorTryoutRequest request) {
 
+        handleServerRestart(request);
         if (!server.isStarted()) {
             if (server.isServerRunning()) {
                 return new MediatorTryoutInfo(TryOutConstants.SERVER_ALREADY_IN_USE_ERROR);
@@ -202,6 +206,7 @@ public class TryOutHandler {
                     getMediatorTryoutInfo(currentInvocationInfo.isNeedStepOver(), breakpointEventProcessor.isDone());
             currentTryoutID = response.getId();
             currentInputInfo = response.getInput();
+            TryOutUtils.updateTimestamp(projectUri, false);
             return response;
         } catch (IOException | InvalidConfigurationException | ArtifactDeploymentException e) {
             LOGGER.log(Level.SEVERE, "Error while handling the tryout", e);
@@ -236,7 +241,9 @@ public class TryOutHandler {
                 return createFaultTryOutInfo();
             }
             currentTryoutID = null;
-            return getMediatorTryoutInfo(true, breakpointEventProcessor.isDone());
+            MediatorTryoutInfo response = getMediatorTryoutInfo(true, breakpointEventProcessor.isDone());
+            TryOutUtils.updateTimestamp(projectUri, true);
+            return response;
         } catch (NoBreakpointHitException e) {
             LOGGER.log(Level.SEVERE, "Error while getting output info");
             return new MediatorTryoutInfo(TryOutConstants.TRYOUT_FAILURE_MESSAGE);
@@ -291,6 +298,9 @@ public class TryOutHandler {
     public MediatorTryoutInfo handleIsolatedTryOut(String projectPath, MediatorTryoutRequest request,
                                                    boolean useSameCAPP, Properties context) {
 
+        if (Constants.VALUE_TRUE.equals(context.get(TryOutConstants.IS_CONNECTOR_TEST))) {
+            handleServerRestart(request);
+        }
         if (!server.isStarted()) {
             if (server.isServerRunning()) {
                 return new MediatorTryoutInfo(TryOutConstants.SERVER_ALREADY_IN_USE_ERROR);
@@ -653,5 +663,38 @@ public class TryOutHandler {
             LOGGER.log(Level.SEVERE, "Error while closing the clients", e);
         }
         return Boolean.FALSE;
+    }
+
+    private void handleServerRestart(MediatorTryoutRequest request) {
+
+        if (!(isNewTryOut(request) || isCompleteTryOut(request))) {
+            return;
+        }
+        String projectHash = TryOutUtils.getProjectPathHash();
+        String existingTimestamp = TryOutUtils.getTimestamp();
+        if (StringUtils.isBlank(existingTimestamp) ||
+                (System.currentTimeMillis()/1000 - Long.parseLong(existingTimestamp) > 30)) {
+            if (StringUtils.isNotBlank(projectHash) && !Utils.getHash(projectUri).equals(projectHash)) {
+                try {
+                    if (commandClient != null && eventClient != null) {
+                        commandClient.close();
+                        eventClient.close();
+                    }
+                    if (TryOutUtils.getProcessId(DEFAULT_SERVER_PORT) != -1) {
+                        ManagementAPIClient managementAPIClient = new ManagementAPIClient();
+                        managementAPIClient.shutdown();
+                    }
+                    while (server.isServerRunning()) {
+                        Thread.sleep(2000);
+                    }
+                    reset();
+                    server.setStarted(false);
+                } catch (Exception e) {
+                    LOGGER.log(Level.SEVERE, "Error occurred while trying to restart the MI server. ", e);
+                }
+            }
+        } else {
+            server.setStarted(false);
+        }
     }
 }

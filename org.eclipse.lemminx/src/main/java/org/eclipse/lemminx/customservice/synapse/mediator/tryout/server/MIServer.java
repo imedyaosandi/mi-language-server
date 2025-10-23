@@ -14,8 +14,10 @@
 
 package org.eclipse.lemminx.customservice.synapse.mediator.tryout.server;
 
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.lemminx.customservice.SynapseLanguageClientAPI;
 import org.eclipse.lemminx.customservice.synapse.mediator.TryOutConstants;
+import org.eclipse.lemminx.customservice.synapse.mediator.TryOutUtils;
 import org.eclipse.lemminx.customservice.synapse.mediator.tryout.pojo.ArtifactDeploymentException;
 import org.eclipse.lemminx.customservice.synapse.mediator.tryout.pojo.DeployedArtifactType;
 import org.eclipse.lemminx.customservice.synapse.syntaxTree.SyntaxTreeGenerator;
@@ -98,6 +100,10 @@ public class MIServer {
         this.languageClient = languageClient;
     }
 
+    public void setStarted(boolean started) {
+        isStarted = started;
+    }
+
     public synchronized void startServer() {
 
         if (isStarted || isStarting || isServerRunning()) {
@@ -109,6 +115,9 @@ public class MIServer {
         }
         try {
             serverProcess = startServerProcess();
+            String content = Utils.getHash(projectUri) + " - " + serverProcess.pid();
+            Files.createDirectories(TryOutConstants.TRYOUT_HISTORY_LOG_FILE.getParent());
+            Files.writeString(TryOutConstants.TRYOUT_HISTORY_LOG_FILE, content);
 
             BufferedReader reader = new BufferedReader(
                     new InputStreamReader(serverProcess.getInputStream(), StandardCharsets.UTF_8));
@@ -172,7 +181,7 @@ public class MIServer {
             processBuilder.command("cmd", "/c", batchFile, "-Desb.debug=true", "-DgracefulShutdown=false");
         } else {
             // Unix-like systems
-            processBuilder = new ProcessBuilder("./micro-integrator.sh", "-Desb.debug=true");
+            processBuilder = new ProcessBuilder("./micro-integrator.sh", "-Desb.debug=true", "-DgracefulShutdown=false");
         }
         Map<String, String> env = processBuilder.environment();
         env.put("JAVA_HOME", System.getProperty("java.home"));
@@ -253,6 +262,10 @@ public class MIServer {
             boolean isAlive = parentProcess.onExit().toCompletableFuture().join().isAlive();
             if (!isAlive) {
                 isStarted = false;
+            }
+            if (Utils.getHash(projectUri).equals(TryOutUtils.getProjectPathHash())) {
+                Files.createDirectories(TryOutConstants.TRYOUT_HISTORY_LOG_FILE.getParent());
+                Files.writeString(TryOutConstants.TRYOUT_HISTORY_LOG_FILE, StringUtils.EMPTY);
             }
             return !isAlive;
         } catch (Exception e) {

@@ -51,15 +51,20 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.InputStreamReader;
 import java.io.IOException;
 import java.io.StringReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Stream;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -71,6 +76,8 @@ public class TryOutUtils {
             UNWANTED_ARTIFACTS = List.of("inbound-endpoints", "message-processors", "proxy-services", "tasks");
     private static final String SOAP_ENVELOPE_URI = "http://schemas.xmlsoap.org/soap/envelope/";
     private static final String BODY = "Body";
+
+    private static final Logger LOGGER = Logger.getLogger(TryOutUtils.class.getName());
 
     private TryOutUtils() {
 
@@ -684,6 +691,123 @@ public class TryOutUtils {
                     .orElseThrow(() -> new ArtifactDeploymentException(TryOutConstants.BUILD_FAILURE_MESSAGE));
         } catch (IOException e) {
             throw new ArtifactDeploymentException(TryOutConstants.BUILD_FAILURE_MESSAGE);
+        }
+    }
+
+    /**
+     * Get the project path hash from the tryout history log file.
+     *
+     * @return the project path hash
+     */
+    public static String getProjectPathHash() {
+
+        String hash = null;
+        try {
+            String content = Files.readString(TryOutConstants.TRYOUT_HISTORY_LOG_FILE);
+            String[] parts = content.split("\\s*-\\s*");
+            if (parts.length >= 2) {
+                hash = parts[0];
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error occurred while reading the tryout history log file. ", e);
+        }
+        return hash;
+    }
+
+    /**
+     * Get the process ID of a given port.
+     *
+     * @param port the port
+     * @return the process ID
+     */
+    public static int getProcessId(int port) {
+
+        String os = System.getProperty("os.name").toLowerCase();
+        String findCommand;
+        if (os.contains("win")) {
+            findCommand = "netstat -ano | findstr :" + port;
+        } else {
+            findCommand = "lsof -i :" + port;
+        }
+
+        String pid = null;
+        try {
+            String line;
+            Process findProcess = Runtime.getRuntime().exec(new String[]{"bash", "-c", findCommand});
+            BufferedReader reader = new BufferedReader(new InputStreamReader(findProcess.getInputStream()));
+            while ((line = reader.readLine()) != null) {
+                if (line.startsWith("COMMAND")) continue;
+                if (os.contains("win")) {
+                    String[] parts = line.trim().split("\\s+");
+                    if (parts.length >= 5) {
+                        pid = parts[4];
+                        break;
+                    }
+                } else {
+                    String[] parts = line.trim().split("\\s+");
+                    if (parts.length >= 2) {
+                        pid = parts[1];
+                        break;
+                    }
+                }
+            }
+            reader.close();
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error occurred while finding the process ID of port " + port + ". ", e);
+        }
+        return pid != null ? Integer.parseInt(pid) : -1;
+    }
+
+    /**
+     * Get the last updated timestamp from the tryout history log file.
+     *
+     * @return the timestamp
+     */
+    public static String getTimestamp() {
+
+        String timestamp = null;
+        try {
+            String content = Files.readString(TryOutConstants.TRYOUT_HISTORY_LOG_FILE);
+            String[] parts = content.split("\\s*-\\s*");
+            if (parts.length == 3) {
+                timestamp = parts[2];
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error occurred while reading the tryout history log file. ", e);
+        }
+        return timestamp;
+    }
+
+    /**
+     * Update the latest timestamp in the tryout history log file.
+     *
+     * @param projectUri the project URI from which the server is started
+     * @param removeTimestamp whether to remove the existing timestamp
+     */
+    public static void updateTimestamp(String projectUri, boolean removeTimestamp) {
+
+        if (Utils.getHash(projectUri).equals(getProjectPathHash())) {
+            try {
+                String content = Files.readString(TryOutConstants.TRYOUT_HISTORY_LOG_FILE);
+                String[] parts = content.split("\\s*-\\s*");
+                String currentTimestamp = String.valueOf(System.currentTimeMillis()/1000);
+                String updatedContent = content;
+                if (removeTimestamp && parts.length == 3) {
+                    updatedContent = String.join(" - ", Arrays.copyOf(parts, parts.length - 1));
+                } else if (parts.length == 3) {
+                    // Already has a timestamp therefore replace it
+                    parts[2] = currentTimestamp;
+                    updatedContent = String.join(" - ", parts);
+                } else if (parts.length == 2) {
+                    // No timestamp therefore append one
+                    updatedContent = content + " - " + currentTimestamp;
+                }
+                Files.createDirectories(TryOutConstants.TRYOUT_HISTORY_LOG_FILE.getParent());
+                Files.writeString(TryOutConstants.TRYOUT_HISTORY_LOG_FILE, updatedContent);
+            } catch (Exception e) {
+                LOGGER.log(Level.SEVERE,
+                        "Error occurred while updating the timestamp in the tryout history log file. ", e);
+            }
         }
     }
 }

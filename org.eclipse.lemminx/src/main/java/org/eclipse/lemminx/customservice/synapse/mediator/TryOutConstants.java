@@ -103,6 +103,7 @@ public class TryOutConstants {
     public static final Path PROJECT_RESOURCES_RELATIVE_PATH = Path.of("src", "main", "wso2mi", "resources");
     public static final String POST_CLEANUP = "POST_CLEANUP";
     public static final String IS_CONNECTOR_TEST = "IS_CONNECTOR_TEST";
+    public static final Path TRYOUT_HISTORY_LOG_FILE = CAPP_CACHE_LOCATION.resolve("tryout_history.lock");
 
     private TryOutConstants() {
 
