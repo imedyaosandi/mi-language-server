@@ -135,7 +135,7 @@
       "type": "inbound-endpoint"
     },
     {
-      "name": "Salesforce PubSub",
+      "name": "Salesforce PubSub (Inbound)",
       "id": "org.wso2.carbon.inbound.sf.pubsub.SFPubSubInboundFactory",
       "type": "inbound-endpoint"
     },
