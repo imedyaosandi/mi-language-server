@@ -26,9 +26,12 @@ import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.Driver;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -83,10 +86,10 @@ public class QueryGenerator {
 
             for (Map.Entry<String, String> entry : tableData.entrySet()) {
                 String table = entry.getKey();
-                List<Map<String, String>> tableDetails = extractTableColumns(metadata, table);
+                List<Map<String, String>> tableDetails = extractTableColumns(connection, metadata, table);
                 Map<String, String> columnsList = tableDetails.get(0);
                 Map<String, String> autoIncrementFields = tableDetails.get(1);
-                Map<String, String> primaryKeys = extractTablePrimaryKeys(metadata, table, columnsList, autoIncrementFields);
+                Map<String, String> primaryKeys = extractTablePrimaryKeys(connection, metadata, table, columnsList, autoIncrementFields);
                 String columnNamesCombined = String.join(", ", columnsList.keySet());
 
                 String methods = entry.getValue();
@@ -131,12 +134,19 @@ public class QueryGenerator {
                 ResultSet tableNamesList = null;
                 try {
                     String schema = extractDatabaseSchema(mObject, connection);
+                    String dbProduct = mObject.getDatabaseProductName();
+                    List<String> types = new ArrayList<>(List.of(DataServiceConstants.TABLE));
+                    if (DataServiceConstants.ORACLE.equalsIgnoreCase(dbProduct)) {
+                        types.add(DataServiceConstants.SYNONYM);
+                    }
                     tableNamesList = mObject.getTables(connection.getCatalog(), schema, "%",
-                            new String[]{"TABLE"});
+                            types.toArray(new String[0]));
                     while (tableNamesList.next()) {
-                        String tableName = tableNamesList.getString("TABLE_NAME");
-                        ResultSet rs = mObject.getPrimaryKeys(null, null, tableName);
-                        tablesMap.put(tableName, Arrays.asList(mObject.isReadOnly(), rs.next()));
+                        String tableName = tableNamesList.getString(DataServiceConstants.TABLE_NAME);
+                        List<Map<String, String>> tableDetails = extractTableColumns(connection, mObject, tableName);
+                        Map<String, String> primaryKeys = extractTablePrimaryKeys(connection, mObject, tableName,
+                                tableDetails.get(0), tableDetails.get(1));
+                        tablesMap.put(tableName, Arrays.asList(mObject.isReadOnly(), !primaryKeys.isEmpty()));
                     }
                 } finally {
                     if (tableNamesList != null) {
@@ -382,10 +392,28 @@ public class QueryGenerator {
      *
      * @return List of columns in the table
      */
-    private static List<Map<String, String>> extractTableColumns(DatabaseMetaData metadata, String table) throws SQLException {
+    private static List<Map<String, String>> extractTableColumns(Connection connection, DatabaseMetaData metadata,
+                                                                 String table) throws SQLException {
         Map<String, String> columnsList = new HashMap<>();
         Map<String, String> autoIncrementFields = new HashMap<String, String>();
-        try (ResultSet rs = metadata.getColumns(null, null, table, null)) {
+
+        String resolvedOwner = null;
+        String resolvedTable = table;
+
+        if (DataServiceConstants.ORACLE.equalsIgnoreCase(metadata.getDatabaseProductName())) {
+            String synonymQuery = "SELECT TABLE_OWNER, TABLE_NAME FROM ALL_SYNONYMS WHERE SYNONYM_NAME = ?";
+            try (PreparedStatement ps = connection.prepareStatement(synonymQuery)) {
+                ps.setString(1, table.toUpperCase());
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        resolvedOwner = rs.getString(DataServiceConstants.TABLE_OWNER);
+                        resolvedTable = rs.getString(DataServiceConstants.TABLE_NAME);
+                    }
+                }
+            }
+        }
+
+        try (ResultSet rs = metadata.getColumns(null, resolvedOwner, resolvedTable, null)) {
             while (rs.next()) {
                 String name = rs.getString(DataServiceConstants.COLUMN_NAME);
                 int type = rs.getInt(DataServiceConstants.DATA_TYPE);
@@ -410,9 +438,9 @@ public class QueryGenerator {
      *
      * @return Details of primary keys in the table
      */
-    private static Map<String, String> extractTablePrimaryKeys(DatabaseMetaData metadata, String table,
-                                           Map<String, String> columnsList, Map<String, String> autoIncrementFields)
-                                                throws SQLException {
+    private static Map<String, String> extractTablePrimaryKeys(Connection connection, DatabaseMetaData metadata,
+                                                String table, Map<String, String> columnsList,
+                                                Map<String, String> autoIncrementFields) throws SQLException {
         Map<String, String> primaryKeys = new HashMap<>();
         try (ResultSet rs = metadata.getPrimaryKeys(null, null, table)) {
             while (rs.next()) {
@@ -422,6 +450,43 @@ public class QueryGenerator {
                     sqlType = autoIncrementFields.get(name);
                 }
                 primaryKeys.put(name, sqlType);
+            }
+        }
+        if (DataServiceConstants.ORACLE.equalsIgnoreCase(metadata.getDatabaseProductName()) && primaryKeys.isEmpty()) {
+            String baseOwner = null;
+            String baseTable = null;
+
+            String synonymQuery = "SELECT TABLE_OWNER, TABLE_NAME " +
+                    "FROM ALL_SYNONYMS WHERE SYNONYM_NAME = ? AND OWNER = ?";
+            try (PreparedStatement stmt = connection.prepareStatement(synonymQuery)) {
+                stmt.setString(1, table.toUpperCase());
+                stmt.setString(2, connection.getMetaData().getUserName().toUpperCase());
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        baseOwner = rs.getString(DataServiceConstants.TABLE_OWNER);
+                        baseTable = rs.getString(DataServiceConstants.TABLE_NAME);
+                    }
+                }
+            }
+
+            if (baseOwner != null && baseTable != null) {
+                String pkQuery = "SELECT cols.COLUMN_NAME " +
+                        "FROM ALL_CONSTRAINTS cons " +
+                        "JOIN ALL_CONS_COLUMNS cols ON cons.CONSTRAINT_NAME = cols.CONSTRAINT_NAME " +
+                        "WHERE cons.CONSTRAINT_TYPE = 'P' " +
+                        "AND cons.OWNER = ? " +
+                        "AND cons.TABLE_NAME = ?";
+                try (PreparedStatement stmt = connection.prepareStatement(pkQuery)) {
+                    stmt.setString(1, baseOwner);
+                    stmt.setString(2, baseTable);
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        while (rs.next()) {
+                            String name = rs.getString(DataServiceConstants.COLUMN_NAME);
+                            String sqlType = columnsList.getOrDefault(name, autoIncrementFields.get(name));
+                            primaryKeys.put(name, sqlType);
+                        }
+                    }
+                }
             }
         }
         return primaryKeys;
@@ -455,8 +520,16 @@ public class QueryGenerator {
             if (DataServiceConstants.IS_AUTOINCREMENT.equalsIgnoreCase(autoIncrString)) {
                 return true;
             }
-            Boolean identity = columnNames.getBoolean(DataServiceConstants.IDENTITY_COLUMN);
-            if (identity != null) {
+            ResultSetMetaData metaData = columnNames.getMetaData();
+            boolean hasIdentityColumn = false;
+            for (int i = 1; i <= metaData.getColumnCount(); i++) {
+                if (DataServiceConstants.IDENTITY_COLUMN.equalsIgnoreCase(metaData.getColumnLabel(i))) {
+                    hasIdentityColumn = true;
+                    break;
+                }
+            }
+            if (hasIdentityColumn) {
+                boolean identity = columnNames.getBoolean(DataServiceConstants.IDENTITY_COLUMN);
                 return identity;
             }
         } catch (SQLException e) {

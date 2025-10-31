@@ -43,10 +43,12 @@ public class CustomResultSet implements ResultSet {
     private List<Map<String, Object>> data;
     private Iterator<Map<String, Object>> rowIterator;
     private Map<String, Object> currentRow;
+    private ResultSetMetaData metaData;
 
-    public CustomResultSet(List<Map<String, Object>> data) {
+    public CustomResultSet(List<Map<String, Object>> data, ResultSetMetaData metaData) {
         this.data = data;
         this.rowIterator = data.iterator();
+        this.metaData = metaData;
     }
 
     public String getColumnLabel(int columnIndex) {
@@ -181,7 +183,7 @@ public class CustomResultSet implements ResultSet {
 
     @Override
     public ResultSetMetaData getMetaData() {
-        return null;
+        return metaData;
     }
 
     @Override

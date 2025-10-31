@@ -39,6 +39,7 @@ import java.nio.file.StandardCopyOption;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -60,7 +61,7 @@ public class QueryGeneratorTest {
     private QueryGenRequestParams requestParams;
     private Connection connection;
     private DatabaseMetaData metadata;
-    private ResultSet resultSet;
+    private ResultSetMetaData resultSetMetadata;
     private MockedStatic<DBConnectionTester> dbConnectionTester;
     private Path tempAddSQLDriverFilePath;
     private Path tempUpdateSQLDriverFilePath;
@@ -173,7 +174,7 @@ public class QueryGeneratorTest {
     public void testGenerateDSSQueriesWithValidParams() throws Exception {
         connection= mock(Connection.class);
         metadata = mock(DatabaseMetaData.class);
-        resultSet = mock(ResultSet.class);
+        resultSetMetadata = mock(ResultSetMetaData.class);
         dbConnectionTester = mockStatic(DBConnectionTester.class);
         dbConnectionTester.when(() -> DBConnectionTester.getConnection(any(), any(), any(), any())).thenReturn(connection);
         when(connection.getMetaData()).thenReturn(metadata);
@@ -192,11 +193,12 @@ public class QueryGeneratorTest {
         primaryKey.put("COLUMN_NAME", "id");
         primaryKey.put("DATA_TYPE", "INTEGER");
         primaryKeyData.add(primaryKey);
-        ResultSet studentColumns = new CustomResultSet(columnData);
-        ResultSet teacherColumns = new CustomResultSet(columnData);
-        ResultSet studentPrimary = new CustomResultSet(primaryKeyData);
-        ResultSet teacherPrimary = new CustomResultSet(primaryKeyData);
+        ResultSet studentColumns = new CustomResultSet(columnData, resultSetMetadata);
+        ResultSet teacherColumns = new CustomResultSet(columnData, resultSetMetadata);
+        ResultSet studentPrimary = new CustomResultSet(primaryKeyData, resultSetMetadata);
+        ResultSet teacherPrimary = new CustomResultSet(primaryKeyData, resultSetMetadata);
 
+        when(resultSetMetadata.getColumnCount()).thenReturn(2);
         when(metadata.getColumns(any(), any(), any(), any())).thenReturn(studentColumns).thenReturn(teacherColumns);
         when(metadata.getPrimaryKeys(any(), any(), any())).thenReturn(studentPrimary).thenReturn(teacherPrimary);
         String path = ConnectorDownloadManagerTest.class.getResource("/synapse/query.generator/generated-configuration.txt").getPath();
@@ -213,7 +215,6 @@ public class QueryGeneratorTest {
     public void testGenerateDSSQueriesWithInvalidParams() {
         connection= mock(Connection.class);
         metadata = mock(DatabaseMetaData.class);
-        resultSet = mock(ResultSet.class);
         dbConnectionTester = mockStatic(DBConnectionTester.class);
         dbConnectionTester.when(() -> DBConnectionTester.getConnection(any(), any(), any(), any())).thenReturn(null);
         String result = QueryGenerator.generateDSSQueries(requestParams);
@@ -228,6 +229,7 @@ public class QueryGeneratorTest {
 
         connection= mock(Connection.class);
         metadata = mock(DatabaseMetaData.class);
+        resultSetMetadata = mock(ResultSetMetaData.class);
         dbConnectionTester = mockStatic(DBConnectionTester.class);
         dbConnectionTester.when(() -> DBConnectionTester.getConnection(any(), any(), any(), any())).thenReturn(connection);
         when(connection.getMetaData()).thenReturn(metadata);
@@ -239,15 +241,28 @@ public class QueryGeneratorTest {
         Map<String, Object> teacherTable = new HashMap<>();
         teacherTable.put("TABLE_NAME", "teacher");
         tableData.add(teacherTable);
-        List<Map<String, Object>> columnData = new ArrayList<>();
+        List<Map<String, Object>> primaryKeyData = new ArrayList<>();
         Map<String, Object> column = new HashMap<>();
         column.put("COLUMN_NAME", "id");
         column.put("DATA_TYPE", "INTEGER");
-        columnData.add(column);
-        ResultSet tables = new CustomResultSet(tableData);
-        ResultSet primary = new CustomResultSet(columnData);
+        primaryKeyData.add(column);
+        ResultSet tables = new CustomResultSet(tableData, resultSetMetadata);
+        ResultSet primary = new CustomResultSet(primaryKeyData, resultSetMetadata);
+
+        List<Map<String, Object>> columnData = new ArrayList<>();
+        Map<String, Object> column1 = new HashMap<>();
+        column1.put("COLUMN_NAME", "id");
+        column1.put("DATA_TYPE", "INTEGER");
+        columnData.add(column1);
+        Map<String, Object> column2 = new HashMap<>();
+        column2.put("COLUMN_NAME", "name");
+        column2.put("DATA_TYPE", "VARCHAR");
+        columnData.add(column2);
+        ResultSet studentColumns = new CustomResultSet(columnData, resultSetMetadata);
+        ResultSet teacherColumns = new CustomResultSet(columnData, resultSetMetadata);
 
         when(metadata.getTables(any(), any(), any(), any())).thenReturn(tables);
+        when(metadata.getColumns(any(), any(), any(), any())).thenReturn(studentColumns).thenReturn(teacherColumns);
         when(metadata.isReadOnly()).thenReturn(false);
         when(metadata.getPrimaryKeys(any(), any(), any())).thenReturn(primary);
         Map<String, List<Boolean>> result = QueryGenerator.getTableList(requestParams);

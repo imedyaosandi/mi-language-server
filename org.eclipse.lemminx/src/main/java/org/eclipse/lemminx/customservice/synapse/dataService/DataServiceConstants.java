@@ -21,4 +21,9 @@ public class DataServiceConstants {
     public static final String AUTOINCREMENT_COLUMN = "IS_AUTOINCREMENT";
     public static final String IDENTITY_COLUMN = "Identity";
     public static final String IS_AUTOINCREMENT = "YES";
+    public static final String ORACLE = "Oracle";
+    public static final String SYNONYM = "SYNONYM";
+    public static final String TABLE = "TABLE";
+    public static final String TABLE_NAME = "TABLE_NAME";
+    public static final String TABLE_OWNER = "TABLE_OWNER";
 }
