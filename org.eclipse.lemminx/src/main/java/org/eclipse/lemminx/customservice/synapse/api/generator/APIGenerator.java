@@ -326,6 +326,10 @@ public class APIGenerator {
             generatedResources = new ArrayList<>();
         }
         for (Map.Entry<String, JsonElement> methodEntry : resourceObj.entrySet()) {
+            // Skip the parameters section at the path level
+            if (SwaggerConstants.PARAMETERS.equals(methodEntry.getKey())) {
+                continue;
+            }
             if (log.isLoggable(Level.FINE)) {
                 log.info("Generating resource for path : " + path + ", method : " + methodEntry.getKey());
             }
