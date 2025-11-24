@@ -34,14 +34,21 @@ import org.eclipse.lemminx.customservice.synapse.utils.Constant;
 import org.eclipse.lemminx.customservice.synapse.utils.Utils;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.FileInputStream;
+import java.io.InputStreamReader;
+import java.io.BufferedReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.URLEncoder;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Map;
+import java.util.Collections;
+import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -393,7 +400,7 @@ public class ConnectorDownloadManager {
 
             //Step 2: First check local lookup
             groupId = DriverGroupIdLookup.getGroupIdFromArtifactId(artifactId);
-            if (groupId.equals("unknown")) {
+            if (groupId.equals(Constant.UNKNOWN)) {
                 LOGGER.log(Level.INFO, "Group ID not found from local lookup for artifactId: " + artifactId);
                 // Step 3: Query Maven Central
                 String query = "a:" + artifactId + " AND v:" + version;
@@ -438,7 +445,7 @@ public class ConnectorDownloadManager {
                 }
             }
         }
-        if (groupId != null && !groupId.equals("unknown")) {
+        if (!Constant.UNKNOWN.equals(groupId)) {
             response.setFound(true);
             response.setArtifactId(artifactId);
             response.setVersion(version);

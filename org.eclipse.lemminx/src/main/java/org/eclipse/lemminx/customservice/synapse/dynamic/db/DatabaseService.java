@@ -43,7 +43,6 @@ public class DatabaseService {
 
     /**
      * Retrieves the columns of a specified table from the database and returns them as a list of DynamicField objects.
-     *
      * @param connectionUrl
      * @param username
      * @param password
@@ -75,7 +74,6 @@ public class DatabaseService {
                     value.setName(DYN_PARAM_PREFIX + fieldName + "_" + dataType + "_" + xmlSafeColumnName);
                     value.setDisplayName(columnName);
                     value.setInputType(inputType);
-                    LOGGER.log(Level.INFO,"column details: ", columns);
                     // Determine if the column is required
                     boolean isRequiredBasedOnDb = columns.getString(IS_NULLABLE_COLUMN).equals(COLUMN_RESPONSE_NO);
                     boolean isAutoIncrement = columns.getString(IS_AUTO_INCREMENT_COLUMN).equals(COLUMN_RESPONSE_NO);
@@ -163,7 +161,6 @@ public class DatabaseService {
      * @return An XML-safe version of the name.
      */
     private String toXmlSafeName(String name) {
-
         if (StringUtils.isEmpty(name)) {
             return StringUtils.EMPTY;
         }
@@ -172,7 +169,6 @@ public class DatabaseService {
     }
 
     private String mapSqlTypeToInputType(String sqlType) {
-
         switch (sqlType.toUpperCase()) {
             case "VARCHAR":
             case "CHAR":

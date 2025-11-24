@@ -405,7 +405,6 @@ public class Constant {
     public static final String SYNAPSE_CONFIG_PATH = "/src/main/synapse-config";
     public static final String SEQUENCES = "sequences";
     public static final String PROXY_SERVICES = "proxy-services";
-
     public static final String INBOUND_ENDPOINTS = "inbound-endpoints";
     public static final String ENDPOINTS = "endpoints";
     public static final String DOT_PROJECT = ".project";
@@ -643,6 +642,7 @@ public class Constant {
     public static final String COMBO = "combo";
     public static final String COMBO_VALUES = "comboValues";
     public static final String TRUE = "true";
+    public static final String UNKNOWN = "unknown";
     public static final String USE_LOCAL_MAVEN = "MI.useLocalMaven";
     public static final String OUTPUT_DIRECTORY = "outputDirectory";
     public static final String OS_TYPE = "os.name";

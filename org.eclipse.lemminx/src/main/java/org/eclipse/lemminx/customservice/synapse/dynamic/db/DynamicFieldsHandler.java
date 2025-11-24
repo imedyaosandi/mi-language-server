@@ -31,7 +31,6 @@ import org.eclipse.lemminx.customservice.synapse.dataService.QueryGenRequestPara
 import org.eclipse.lemminx.customservice.synapse.db.DBConnectionTester;
 
 public class DynamicFieldsHandler {
-
     private final DatabaseService databaseService;
     private static final Logger log = Logger.getLogger(DynamicFieldsHandler.class.getName());
 
@@ -54,7 +53,6 @@ public class DynamicFieldsHandler {
     private static final String OP_STORED_PROCEDURE = "storedProcedure";
 
     public DynamicFieldsHandler() {
-
         this.databaseService = new DatabaseService();
     }
 
@@ -65,7 +63,6 @@ public class DynamicFieldsHandler {
      * @return A response containing the dynamic fields.
      */
     public GetDynamicFieldsResponse handleDynamicFieldsRequest(GetDynamicFieldsRequest request) {
-
         GetDynamicFieldsResponse response = new GetDynamicFieldsResponse();
         Map<String, List<DynamicField>> fields = new HashMap<>();
         response.setFields(fields);
@@ -192,7 +189,6 @@ public class DynamicFieldsHandler {
      * @return The value of the specified parameter, or null if not found.
      */
     private String getParameterValue(GetDynamicFieldsRequest request, String paramName) {
-
         if (request.getConnection() != null && request.getConnection().getParameters() != null) {
             return request.getConnection().getParameters().stream().filter(param -> paramName.equals(param.getName()))
                     .findFirst().map(param -> param.getValue()).orElse(null);
