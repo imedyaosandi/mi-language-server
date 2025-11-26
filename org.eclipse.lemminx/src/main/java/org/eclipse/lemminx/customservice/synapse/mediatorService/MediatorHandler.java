@@ -255,7 +255,7 @@ public class MediatorHandler {
 
                     // if count of value larger than 0
                     dataValueStr.append("[");
-                    int j =0;
+                    int j = 0;
                     for (Object key : dataValueItem.keySet()) {
                         Object propertyValue;
                         if (dataValueItem.get(key) instanceof LinkedTreeMap) {
