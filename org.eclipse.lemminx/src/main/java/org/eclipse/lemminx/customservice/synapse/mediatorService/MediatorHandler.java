@@ -271,7 +271,7 @@ public class MediatorHandler {
                         }
 
                         dataValueStr.append(String.format("\"%s\"", propertyValue));
-                        if(j < dataValueItem.keySet().size()-1){
+                        if (j < dataValueItem.keySet().size() - 1) {
                             dataValueStr.append(", ");
                         }
                         j++;
