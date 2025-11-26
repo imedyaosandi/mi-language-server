@@ -180,7 +180,7 @@ public class ConnectorDownloadManager {
             if (!tempDriverFile.exists()) {
                 // Download only if not present
                 LOGGER.log(Level.INFO, "Downloading driver from Maven repository...");
-                Utils.downloadConnector(groupId, artifactId, version, driversDirectory, Constant.JAR_EXTENSION_NO_DOT,projectPath);
+                Utils.downloadConnector(groupId, artifactId, version, driversDirectory, Constant.JAR_EXTENSION_NO_DOT, projectPath);
             } else {
                 LOGGER.log(Level.INFO, "Driver already exists in temp: " + tempDriverFile.getAbsolutePath());
             }
