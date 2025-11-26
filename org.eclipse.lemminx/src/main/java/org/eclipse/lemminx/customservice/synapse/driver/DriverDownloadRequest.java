@@ -29,9 +29,9 @@ public class DriverDownloadRequest {
 
     public DriverDownloadRequest(String groupId,String artifactId,String version) {
 
-        this.groupId=groupId;
-        this.artifactId=artifactId;
-        this.version=version;
+        this.groupId = groupId;
+        this.artifactId = artifactId;
+        this.version = version;
     }
 
     public String getGroupId() {
