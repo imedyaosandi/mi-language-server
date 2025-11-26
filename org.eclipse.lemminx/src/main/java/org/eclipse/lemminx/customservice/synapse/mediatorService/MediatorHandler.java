@@ -274,7 +274,7 @@ public class MediatorHandler {
                         if(j < dataValueItem.keySet().size()-1){
                             dataValueStr.append(", ");
                         }
-                       j++;
+                        j++;
                     }
                     dataValueStr.append("]");
                     if (i < dataValueList.size() - 1) {
