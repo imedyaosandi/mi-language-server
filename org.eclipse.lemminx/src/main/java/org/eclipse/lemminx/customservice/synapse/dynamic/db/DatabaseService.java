@@ -76,8 +76,8 @@ public class DatabaseService {
                     value.setInputType(inputType);
                     // Determine if the column is required
                     boolean isRequiredBasedOnDb = columns.getString(IS_NULLABLE_COLUMN).equals(COLUMN_RESPONSE_NO);
-                    boolean isAutoIncrement = columns.getString(IS_AUTO_INCREMENT_COLUMN).equals(COLUMN_RESPONSE_NO);
-                    value.setRequired(markNull && isRequiredBasedOnDb && isAutoIncrement ? BOOLEAN_TRUE : BOOLEAN_FALSE);
+                    boolean isAutoIncrementDisabled = columns.getString(IS_AUTO_INCREMENT_COLUMN).equals(COLUMN_RESPONSE_NO);
+                    value.setRequired(markNull && isRequiredBasedOnDb && isAutoIncrementDisabled ? BOOLEAN_TRUE : BOOLEAN_FALSE);
 
                     value.setHelpTip("Column type: " + dataType);
                     value.setPlaceholder("Enter " + columnName);

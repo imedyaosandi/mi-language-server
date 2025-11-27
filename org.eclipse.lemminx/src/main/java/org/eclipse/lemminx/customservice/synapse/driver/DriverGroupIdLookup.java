@@ -17,6 +17,8 @@ package org.eclipse.lemminx.customservice.synapse.driver;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.eclipse.lemminx.customservice.synapse.utils.Constant;
+
 public class DriverGroupIdLookup {
 
     private static final Map<String, String> DRIVER_GROUP_IDS = new HashMap<>();
@@ -59,7 +61,7 @@ public class DriverGroupIdLookup {
                 return DRIVER_GROUP_IDS.get(pattern);
             }
         }
-        return "unknown";
+        return Constant.UNKNOWN;
     }
 
     public static String getGroupIdFromFileName(String fileName) {

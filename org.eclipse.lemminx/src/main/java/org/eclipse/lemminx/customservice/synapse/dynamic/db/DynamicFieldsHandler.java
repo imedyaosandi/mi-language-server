@@ -163,13 +163,17 @@ public class DynamicFieldsHandler {
                     connection = DBConnectionTester.getConnection(url, username, password, className, driverPath);
                 }
 
-                DatabaseMetaData metaData = connection.getMetaData();
-                try (ResultSet rs = metaData.getProcedures(null, null, null)) {
-                    while (rs.next()) {
-                        String procedureName = rs.getString("PROCEDURE_NAME");
-                        procedures.add(procedureName);
-                    }
-                }
+				if (connection != null) {
+					DatabaseMetaData metaData = connection.getMetaData();
+					try (ResultSet rs = metaData.getProcedures(null, null, null)) {
+						while (rs.next()) {
+							String procedureName = rs.getString("PROCEDURE_NAME");
+							procedures.add(procedureName);
+						}
+					}
+				} else {
+					throw new Exception("Connection not found.");
+				}
             } catch (SQLException e) {
                 log.log(Level.SEVERE, "Error retrieving stored procedures", e);
             } catch (Exception e) {

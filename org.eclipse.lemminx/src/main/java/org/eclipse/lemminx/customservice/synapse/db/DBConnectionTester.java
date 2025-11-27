@@ -69,15 +69,24 @@ public class DBConnectionTester {
     public boolean testDBConnection(String dbType, String username, String password, String host, String port,
                                     String dbName, String url, String className, String driverPath) {
 
-        Connection connection;
-        if (StringUtils.isBlank(url)) {
-            String connUriStr = generateConnectionUrl(dbType, host, port, dbName);
-            connection = getConnection(connUriStr, username, password, className, driverPath);
-        } else {
-            connection = getConnection(url, username, password, className, driverPath);
+        Connection connection = null;
+		try {
+			if (StringUtils.isBlank(url)) {
+            	String connUriStr = generateConnectionUrl(dbType, host, port, dbName);
+            	connection = getConnection(connUriStr, username, password, className, driverPath);
+        	} else {
+            	connection = getConnection(url, username, password, className, driverPath);
+        	}
+        	return connection != null;
+		} finally {
+			if (connection != null) {
+                try {
+                    connection.close();
+                } catch (SQLException e) {
+                    LOGGER.log(Level.FINE, "Error while closing test DB connection", e);
+                }
+            } 
         }
-
-        return connection != null;
     }
 
     public static Connection getConnection(String connectionUrl, String username, String password, String className) {
@@ -124,8 +133,8 @@ public class DBConnectionTester {
             Properties props = new Properties();
 
             // Check username and password are empty due to Derby db can connect without username and password
-            if (!connectionUrl.contains(DBConstant.DBTypes.DB_TYPE_DERBY_CONN) || !username.equals(
-                    Constant.EMPTY_STRING) || !password.equals(Constant.EMPTY_STRING)) {
+            if (connectionUrl.contains(DBConstant.DBTypes.DB_TYPE_DERBY_CONN) && StringUtils.isNotBlank(username)
+                    && StringUtils.isNotBlank(password)) {
                 props.setProperty(Constant.USER, username);
                 props.setProperty(Constant.PASSWORD, password);
             }

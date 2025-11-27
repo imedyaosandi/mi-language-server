@@ -267,20 +267,27 @@ public class ConnectorDownloadManager {
                                               String projectUri) {
 
         LOGGER.log(Level.INFO, "Adding driver to local repo.. ");
-        boolean isDriverAdded = true;
+        boolean isDriverAdded = false;
         //Check if already exists
         File localDriverFile = getDriverFromLocalRepo(groupId, artifactId, version);
         if (localDriverFile != null) {
+			isDriverAdded = true;
             LOGGER.log(Level.INFO, "Driver already in local maven repository ");
         } else {
             Path projectPath = Path.of(projectUri);
 
-            File mvnwFile = projectPath.resolve("mvnw").toFile();
+            File mvnwFile;
+			String os = System.getProperty("os.name").toLowerCase();
+			if (os.contains("win")) {
+				mvnwFile = projectPath.resolve("mvnw.cmd").toFile();
+			} else {
+				mvnwFile = projectPath.resolve("mvnw").toFile();
+			}
 
             InvocationRequest request = new DefaultInvocationRequest();
             request.setBatchMode(true);
             request.setOffline(false);
-            request.setBaseDirectory(new File(".")); // or use project base directory
+            request.setBaseDirectory(projectPath.toFile());
             request.setGoals(Collections.singletonList("install:install-file"));
 
             // Set Maven properties
@@ -294,7 +301,6 @@ public class ConnectorDownloadManager {
             request.setProperties(props);
 
             Invoker invoker = new DefaultInvoker();
-            invoker.setMavenHome(projectPath.toFile());
             invoker.setMavenExecutable(mvnwFile);
 
             InvocationResult result = null;
@@ -305,13 +311,15 @@ public class ConnectorDownloadManager {
                     LOGGER.log(Level.INFO, "JAR installed successfully! ");
 
                 } else {
-                    isDriverAdded = false;
-                    LOGGER.log(Level.INFO,
+					if (result != null) {
+						LOGGER.log(Level.INFO,
                             "Failed to install JAR. Exception:  " + result.getExecutionException() + " Exit code:   " +
                                     result.getExitCode());
+					} else {
+						LOGGER.log(Level.INFO, "Failed to install JAR. InvocationResult is null.");  
+					}
                 }
             } catch (MavenInvocationException e) {
-                isDriverAdded = false;
                 LOGGER.log(Level.INFO, "Maven Invocation Exception " + e);
             }
 
@@ -342,6 +350,10 @@ public class ConnectorDownloadManager {
             connectorHolder = ConnectorHolder.getInstance();
             Connector connector = connectorHolder.getConnector(connectorName);
 
+			if (connector == null) {
+	            LOGGER.log(Level.SEVERE, "Connector not found for name: " + connectorName);
+	            return null;
+         	}
             String connectorPath = connector.getExtractedConnectorPath();
             File connectorDirectory = Path.of(connectorPath).toFile();
             if (!connectorDirectory.exists() || !connectorDirectory.isDirectory()) {
@@ -410,35 +422,40 @@ public class ConnectorDownloadManager {
                     String apiUrl = Constant.MAVEN_CENTRAL_URL + encodedQuery + Constant.MAVEN_SEARCH_PARAM;
                     // Execute HTTP GET request
                     URL url = new URL(apiUrl);
-                    HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                    conn.setConnectTimeout(20_000);
-                    conn.setReadTimeout(40_000);
-                    conn.setRequestMethod("GET");
-                    if (conn.getResponseCode() != 200) {
-                        LOGGER.log(Level.INFO, "Failed : HTTP error code : " + conn.getResponseCode());
-                    }
-                    BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-                    StringBuilder jsonOutput = new StringBuilder();
-                    String line;
-                    while ((line = br.readLine()) != null) {
-                        jsonOutput.append(line);
-                    }
+					HttpURLConnection conn = null;
+					try {
+						conn = (HttpURLConnection) url.openConnection();
+						conn.setConnectTimeout(20_000);
+						conn.setReadTimeout(40_000);
+						conn.setRequestMethod("GET");
+						if (conn.getResponseCode() != 200) {
+							LOGGER.log(Level.INFO, "Failed : HTTP error code : " + conn.getResponseCode());
+							return response;
+						} else {
+							StringBuilder jsonOutput = new StringBuilder();
+							BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+							String line;
+							while ((line = br.readLine()) != null) {
+								jsonOutput.append(line);
+							}
+							// Parse the result
+							JSONObject json = new JSONObject(jsonOutput.toString());
+							JSONArray docs = json.getJSONObject("response").getJSONArray("docs");
 
-                    conn.disconnect();
-
-                    // Parse the result
-                    JSONObject json = new JSONObject(jsonOutput.toString());
-                    JSONArray docs = json.getJSONObject("response").getJSONArray("docs");
-
-                    if (docs.length() > 0) {
-                        JSONObject doc = docs.getJSONObject(0);
-                        groupId = doc.getString("g");
-                        artifactId = doc.getString("a");
-                        version = doc.getString("v");
-                    } else {
-                        LOGGER.log(Level.INFO, "No match found for artifactId=" + artifactId + ", version=" + version);
-                    }
-
+							if (docs.length() > 0) {
+								JSONObject doc = docs.getJSONObject(0);
+								groupId = doc.getString("g");
+								artifactId = doc.getString("a");
+								version = doc.getString("v");
+							} else {
+								LOGGER.log(Level.INFO, "No match found for artifactId=" + artifactId + ", version=" + version);
+							}
+						}
+					} finally {
+						if (conn != null) {
+							conn.disconnect();
+						}
+					}
                 } catch (Exception e) {
                     LOGGER.log(Level.SEVERE, "Error finding driver for connection type: " + e.getMessage());
                     return response;

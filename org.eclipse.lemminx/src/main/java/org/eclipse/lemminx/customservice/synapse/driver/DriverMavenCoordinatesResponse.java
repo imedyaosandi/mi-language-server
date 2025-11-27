@@ -15,7 +15,7 @@
 package org.eclipse.lemminx.customservice.synapse.driver;
 
 /**
- * Request Maven Coordinates for driver.
+ * Respond Maven Coordinates of the driver.
  */
 
 public class DriverMavenCoordinatesResponse {
